@@ -203,7 +203,7 @@ export function TasksBoard({
               Nenhuma tarefa ainda. Adicione a primeira acima.
             </div>
           )}
-          {meta && onPageChange && (
+          {viewMode === 'list' && meta && onPageChange && (
             <TaskPagination
               page={meta.page}
               totalPages={meta.totalPages}
