@@ -27,6 +27,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { DeleteTasksBatchDto } from './dto/delete-tasks-batch.dto';
 import { TaskFilterDto } from './dto/task-filter.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { UpdateTasksBatchDto } from './dto/update-tasks-batch.dto';
 import { TasksService } from './tasks.service';
 
 const TASK_ID_PARAM = {
@@ -141,6 +142,66 @@ export class TasksController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.tasksService.findOne(id, user);
+  }
+
+  @Post(':id/duplicate')
+  @ApiParam(TASK_ID_PARAM)
+  @ApiOperation({
+    summary: 'Duplicate a task',
+    description:
+      'Clones title, description, priority and dueDate into a new task owned ' +
+      'by the authenticated user with status PENDING. Attachments are not copied. ' +
+      'COMMON users may only duplicate tasks they own; ADMIN may duplicate any task.',
+  })
+  @ApiResponse({ status: 201, description: 'Task duplicated successfully.' })
+  @ApiResponse({ status: 400, description: 'The id is not a valid UUID.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing, invalid or expired access token.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'COMMON user attempting to duplicate a task they do not own.',
+  })
+  @ApiResponse({ status: 404, description: 'Task not found.' })
+  duplicate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.tasksService.duplicate(id, user);
+  }
+
+  @Patch('batch')
+  @ApiOperation({
+    summary: 'Update multiple tasks',
+    description:
+      'Applies the same status, priority and/or dueDate patch to up to 100 ' +
+      'tasks. COMMON users may only update tasks they own; ADMIN may update ' +
+      'any of the given tasks. Fails entirely if any id is missing or forbidden.',
+  })
+  @ApiResponse({ status: 200, description: 'Tasks updated successfully.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error in the request body.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing, invalid or expired access token.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'COMMON user attempting to update a task they do not own.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'One or more task ids were not found.',
+  })
+  updateMany(
+    @Body() dto: UpdateTasksBatchDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const { ids, status, priority, dueDate } = dto;
+    return this.tasksService.updateMany(ids, { status, priority, dueDate }, user);
   }
 
   @Patch(':id')

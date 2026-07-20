@@ -13,6 +13,7 @@ type MockPrismaService = {
     count: jest.Mock;
     findUnique: jest.Mock;
     update: jest.Mock;
+    updateMany: jest.Mock;
     delete: jest.Mock;
     deleteMany: jest.Mock;
   };
@@ -93,6 +94,7 @@ describe('TasksService', () => {
         count: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(),
         delete: jest.fn(),
         deleteMany: jest.fn(),
       },
@@ -253,6 +255,186 @@ describe('TasksService', () => {
       await expect(
         service.removeMany([TASK_A, TASK_B], ownerUser),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('updateMany', () => {
+    const TASK_A = '11111111-1111-4111-8111-111111111111';
+    const TASK_B = '22222222-2222-4222-8222-222222222222';
+
+    beforeEach(() => {
+      prisma.task.updateMany.mockResolvedValue({ count: 2 });
+    });
+
+    it('allows a COMMON user to update their own tasks', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        { id: TASK_A, profileId: OWNER_ID },
+        { id: TASK_B, profileId: OWNER_ID },
+      ]);
+
+      const result = await service.updateMany(
+        [TASK_A, TASK_B],
+        { status: TaskStatus.COMPLETED },
+        ownerUser,
+      );
+
+      expect(result.updatedIds).toEqual(
+        expect.arrayContaining([TASK_A, TASK_B]),
+      );
+      expect(prisma.task.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: expect.arrayContaining([TASK_A, TASK_B]) } },
+        data: { status: TaskStatus.COMPLETED },
+      });
+    });
+
+    it('rejects COMMON users when any task belongs to someone else', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        { id: TASK_A, profileId: OWNER_ID },
+        { id: TASK_B, profileId: OTHER_USER_ID },
+      ]);
+
+      await expect(
+        service.updateMany(
+          [TASK_A, TASK_B],
+          { priority: Priority.HIGH },
+          ownerUser,
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.task.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('allows an ADMIN to update tasks owned by others', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        { id: TASK_A, profileId: OTHER_USER_ID },
+        { id: TASK_B, profileId: OWNER_ID },
+      ]);
+
+      const result = await service.updateMany(
+        [TASK_A, TASK_B],
+        { status: TaskStatus.IN_PROGRESS },
+        adminUser,
+      );
+
+      expect(result.updatedIds).toHaveLength(2);
+      expect(prisma.task.updateMany).toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when any id is missing', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        { id: TASK_A, profileId: OWNER_ID },
+      ]);
+
+      await expect(
+        service.updateMany(
+          [TASK_A, TASK_B],
+          { status: TaskStatus.COMPLETED },
+          ownerUser,
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.task.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when update count mismatches', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        { id: TASK_A, profileId: OWNER_ID },
+        { id: TASK_B, profileId: OWNER_ID },
+      ]);
+      prisma.task.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        service.updateMany(
+          [TASK_A, TASK_B],
+          { status: TaskStatus.COMPLETED },
+          ownerUser,
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('duplicate', () => {
+    it('allows a COMMON user to duplicate their own task as PENDING', async () => {
+      const source = buildTask({
+        profileId: OWNER_ID,
+        title: 'Original',
+        description: 'Desc',
+        priority: Priority.HIGH,
+        dueDate: new Date('2026-08-01T00:00:00.000Z'),
+        status: TaskStatus.COMPLETED,
+      });
+      const created = buildTask({
+        id: 'dup-1',
+        profileId: OWNER_ID,
+        title: source.title,
+        description: source.description,
+        priority: source.priority,
+        dueDate: source.dueDate,
+        status: TaskStatus.PENDING,
+      });
+      prisma.task.findUnique.mockResolvedValue(source);
+      prisma.task.create.mockResolvedValue(created);
+
+      const result = await service.duplicate(source.id, ownerUser);
+
+      expect(prisma.task.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: 'Original',
+            description: 'Desc',
+            priority: Priority.HIGH,
+            status: TaskStatus.PENDING,
+            profileId: OWNER_ID,
+          }),
+        }),
+      );
+      expect(result.status).toBe(TaskStatus.PENDING);
+      expect(result.title).toBe('Original');
+    });
+
+    it('prevents a COMMON user from duplicating a foreign task', async () => {
+      const task = buildTask({ profileId: OTHER_USER_ID });
+      prisma.task.findUnique.mockResolvedValue(task);
+
+      await expect(
+        service.duplicate(task.id, ownerUser),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.task.create).not.toHaveBeenCalled();
+    });
+
+    it('allows an ADMIN to duplicate a foreign task owned by the admin', async () => {
+      const source = buildTask({
+        profileId: OTHER_USER_ID,
+        title: 'Admin copy',
+        status: TaskStatus.IN_PROGRESS,
+      });
+      const created = buildTask({
+        id: 'dup-admin',
+        profileId: ADMIN_ID,
+        title: source.title,
+        status: TaskStatus.PENDING,
+      });
+      prisma.task.findUnique.mockResolvedValue(source);
+      prisma.task.create.mockResolvedValue(created);
+
+      const result = await service.duplicate(source.id, adminUser);
+
+      expect(prisma.task.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            profileId: ADMIN_ID,
+            status: TaskStatus.PENDING,
+          }),
+        }),
+      );
+      expect(result.profileId).toBe(ADMIN_ID);
+    });
+
+    it('throws NotFoundException when the task does not exist', async () => {
+      prisma.task.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.duplicate('missing-id', ownerUser),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.task.create).not.toHaveBeenCalled();
     });
   });
 

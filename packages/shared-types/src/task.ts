@@ -69,6 +69,35 @@ export type DeleteTasksBatchResponse = z.infer<
   typeof DeleteTasksBatchResponseSchema
 >;
 
+export const UpdateTasksBatchInputSchema = z
+  .object({
+    ids: z
+      .array(z.string().uuid())
+      .min(1)
+      .max(100)
+      .refine((ids) => new Set(ids).size === ids.length, {
+        message: 'ids must be unique',
+      }),
+    status: TaskStatusSchema.optional(),
+    priority: PrioritySchema.optional(),
+    dueDate: z.string().min(1).optional(),
+  })
+  .refine(
+    (data) =>
+      data.status !== undefined ||
+      data.priority !== undefined ||
+      data.dueDate !== undefined,
+    { message: 'At least one of status, priority, or dueDate must be provided' },
+  );
+export type UpdateTasksBatchInput = z.infer<typeof UpdateTasksBatchInputSchema>;
+
+export const UpdateTasksBatchResponseSchema = z.object({
+  updatedIds: z.array(z.string().uuid()),
+});
+export type UpdateTasksBatchResponse = z.infer<
+  typeof UpdateTasksBatchResponseSchema
+>;
+
 export const TaskFilterInputSchema = z.object({
   scope: z.enum(['personal', 'all']).optional(),
   status: TaskStatusSchema.optional(),

@@ -3,7 +3,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Attachment, Prisma, Role, Task, TaskStatus } from '@prisma/client';
+import {
+  Attachment,
+  Priority,
+  Prisma,
+  Role,
+  Task,
+  TaskStatus,
+} from '@prisma/client';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -13,6 +20,12 @@ import { PaginatedResult } from './interfaces/paginated-result.interface';
 import { TaskResponse } from './interfaces/task-response.interface';
 import { TaskStatusSummary } from './interfaces/task-status-summary.interface';
 import { resolveFileType } from './utils/resolve-file-type.util';
+
+export type UpdateTasksBatchPatch = {
+  status?: TaskStatus;
+  priority?: Priority;
+  dueDate?: string;
+};
 
 const TASK_INCLUDE = {
   attachments: true,
@@ -169,6 +182,70 @@ export class TasksService {
     });
 
     return this.toTaskResponse(updated);
+  }
+
+  async updateMany(
+    ids: string[],
+    patch: UpdateTasksBatchPatch,
+    user: AuthenticatedUser,
+  ): Promise<{ updatedIds: string[] }> {
+    const uniqueIds = [...new Set(ids)];
+
+    const found = await this.prisma.task.findMany({
+      where: { id: { in: uniqueIds } },
+      select: { id: true, profileId: true },
+    });
+
+    if (found.length !== uniqueIds.length) {
+      throw new NotFoundException('One or more tasks were not found.');
+    }
+
+    if (user.role !== Role.ADMIN) {
+      const forbidden = found.some((task) => task.profileId !== user.id);
+      if (forbidden) {
+        throw new ForbiddenException(
+          'You do not have permission to update one or more of these tasks.',
+        );
+      }
+    }
+
+    const updatedIds = found.map((task) => task.id);
+
+    const { count } = await this.prisma.task.updateMany({
+      where: { id: { in: updatedIds } },
+      data: {
+        ...(patch.status !== undefined ? { status: patch.status } : {}),
+        ...(patch.priority !== undefined ? { priority: patch.priority } : {}),
+        ...(patch.dueDate !== undefined
+          ? { dueDate: new Date(patch.dueDate) }
+          : {}),
+      },
+    });
+
+    if (count !== updatedIds.length) {
+      throw new NotFoundException('One or more tasks were not found.');
+    }
+
+    return { updatedIds };
+  }
+
+  async duplicate(id: string, user: AuthenticatedUser): Promise<TaskResponse> {
+    const task = await this.getTaskOrThrow(id);
+    this.assertOwnership(task, user);
+
+    const created = await this.prisma.task.create({
+      data: {
+        title: task.title,
+        description: task.description,
+        dueDate: task.dueDate ?? undefined,
+        priority: task.priority,
+        status: TaskStatus.PENDING,
+        profileId: user.id,
+      },
+      include: TASK_INCLUDE,
+    });
+
+    return this.toTaskResponse(created);
   }
 
   async remove(id: string, user: AuthenticatedUser): Promise<{ id: string }> {
