@@ -7,6 +7,10 @@ export type DuePreset = 'all' | 'overdue' | 'today' | 'week' | 'none'
 export type TaskSortField = 'createdAt' | 'priority' | 'dueDate'
 export type SortOrder = 'asc' | 'desc'
 
+export const TASK_LIST_PAGE_SIZE = 20
+
+export const TASK_KANBAN_PAGE_SIZE = 100
+
 export interface TaskSearchState {
   view: TaskViewMode
   scope: TaskScope
@@ -16,6 +20,7 @@ export interface TaskSearchState {
   due: DuePreset
   sort: TaskSortField
   order: SortOrder
+  page: number
 }
 
 const VIEWS: TaskViewMode[] = ['list', 'kanban']
@@ -33,10 +38,17 @@ export const DEFAULT_TASK_SEARCH: TaskSearchState = {
   due: 'all',
   sort: 'createdAt',
   order: 'desc',
+  page: 1,
 }
 
 function isOneOf<T extends string>(value: string | null, allowed: T[]): value is T {
   return value != null && (allowed as string[]).includes(value)
+}
+
+function parsePositiveInt(value: string | null, fallback: number): number {
+  if (value == null || value === '') return fallback
+  const n = Number.parseInt(value, 10)
+  return Number.isFinite(n) && n >= 1 ? n : fallback
 }
 
 function toIsoDate(date: Date): string {
@@ -71,13 +83,10 @@ export function parseTaskSearchParams(
     due: isOneOf(dueRaw, DUES) ? dueRaw : DEFAULT_TASK_SEARCH.due,
     sort: isOneOf(sortRaw, SORTS) ? sortRaw : DEFAULT_TASK_SEARCH.sort,
     order: isOneOf(orderRaw, ORDERS) ? orderRaw : DEFAULT_TASK_SEARCH.order,
+    page: parsePositiveInt(params.get('page'), DEFAULT_TASK_SEARCH.page),
   }
 }
 
-/**
- * Serialize typed state to a URLSearchParams instance, omitting defaults so
- * the URL stays shareable and readable.
- */
 export function serializeTaskSearchParams(
   state: TaskSearchState,
 ): URLSearchParams {
@@ -90,18 +99,21 @@ export function serializeTaskSearchParams(
   if (state.due !== DEFAULT_TASK_SEARCH.due) params.set('due', state.due)
   if (state.sort !== DEFAULT_TASK_SEARCH.sort) params.set('sort', state.sort)
   if (state.order !== DEFAULT_TASK_SEARCH.order) params.set('order', state.order)
+  if (state.page !== DEFAULT_TASK_SEARCH.page) {
+    params.set('page', String(state.page))
+  }
   return params
 }
 
-/** Map URL due presets + sort into the API's TaskFilterInput shape. */
 export function toTaskFilterInput(state: TaskSearchState): TaskFilterInput {
   const today = toIsoDate(new Date())
+  const isList = state.view === 'list'
   const filter: TaskFilterInput = {
     scope: state.scope,
     sortBy: state.sort,
     order: state.order,
-    page: 1,
-    limit: 100,
+    page: isList ? state.page : 1,
+    limit: isList ? TASK_LIST_PAGE_SIZE : TASK_KANBAN_PAGE_SIZE,
   }
 
   if (state.status) filter.status = state.status

@@ -57,7 +57,13 @@ function TasksPageContent() {
 
   const patchState = useCallback(
     (patch: Partial<TaskSearchState>) => {
-      replaceState({ ...state, ...patch })
+      const keys = Object.keys(patch) as (keyof TaskSearchState)[]
+      const onlyPage = keys.length === 1 && keys[0] === 'page'
+      replaceState({
+        ...state,
+        ...patch,
+        page: onlyPage ? (patch.page ?? state.page) : 1,
+      })
     },
     [replaceState, state],
   )
@@ -82,11 +88,19 @@ function TasksPageContent() {
       priority: undefined,
       q: '',
       due: 'all',
+      page: 1,
     })
   }, [replaceState, state])
 
   const filters = useMemo(() => toTaskFilterInput(state), [state])
   const firstName = profile?.name?.split(' ')[0] ?? profile?.email?.split('@')[0]
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      patchState({ page })
+    },
+    [patchState],
+  )
 
   return (
     <div className="flex flex-col gap-8">
@@ -209,6 +223,7 @@ function TasksPageContent() {
         viewMode={state.view}
         scope={state.scope}
         filters={filters}
+        onPageChange={handlePageChange}
       />
 
       <AddTaskDialog open={adding} onOpenChange={setAdding} />

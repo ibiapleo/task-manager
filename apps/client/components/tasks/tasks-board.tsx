@@ -22,6 +22,7 @@ import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import { KanbanColumn } from '@/components/tasks/kanban-column'
 import { TaskCard } from '@/components/tasks/task-card'
 import { TaskDetailsModal } from '@/components/tasks/task-details-modal'
+import { TaskPagination } from '@/components/tasks/task-pagination'
 import type { Task, TaskStatus } from '@/lib/types'
 
 const STATUSES: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED']
@@ -34,21 +35,21 @@ export function TasksBoard({
   viewMode,
   scope = 'personal',
   filters = {},
+  onPageChange,
 }: {
   viewMode: 'list' | 'kanban'
   scope?: 'personal' | 'all'
   filters?: TaskFilterInput
+  onPageChange?: (page: number) => void
 }) {
   const { data, isLoading, isError } = useTasksQuery(filters)
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
   const showOwner = scope === 'all'
+  const meta = data?.meta
 
   const serverTasks = data?.data ?? []
-  // Local buffer so Kanban drag can animate instantly. The API has no
-  // manual ordering field, so only cross-column drops (a real status
-  // change) get persisted via useUpdateTask - same-column position is
-  // purely visual and resets on the next refetch.
+  
   const [tasks, setTasks] = useState<Task[]>(serverTasks)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [toDelete, setToDelete] = useState<Task | null>(null)
@@ -56,9 +57,15 @@ export function TasksBoard({
 
   useEffect(() => {
     setTasks(serverTasks)
-    // Re-sync whenever the server list changes (refetch, filters, mutation).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
+
+  useEffect(() => {
+    if (viewMode !== 'list' || !meta || !onPageChange) return
+    if (meta.totalPages === 0) return
+    if (meta.page > meta.totalPages) {
+      onPageChange(meta.totalPages)
+    }
+  }, [viewMode, meta, onPageChange])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -195,6 +202,15 @@ export function TasksBoard({
             <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
               Nenhuma tarefa ainda. Adicione a primeira acima.
             </div>
+          )}
+          {viewMode === 'list' && meta && onPageChange && (
+            <TaskPagination
+              page={meta.page}
+              totalPages={meta.totalPages}
+              total={meta.total}
+              onPageChange={onPageChange}
+              className="mt-3 self-center"
+            />
           )}
         </div>
       )}
