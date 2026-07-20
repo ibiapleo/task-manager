@@ -12,6 +12,7 @@ import { ThemeSelector } from '@/components/theme-selector'
 import { useTheme } from '@/components/theme-provider'
 import { UserAvatar } from '@/components/user-avatar'
 import { GlassCard } from '@/components/ui/glass'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { PillSelect } from '@/components/ui/pill-select'
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile'
 import { applyAccessibilityPreview, applyThemePreview } from '@/lib/preview-preferences'
@@ -178,25 +179,30 @@ export default function SettingsPage() {
           </p>
           <div className="mt-6 flex flex-col gap-4">
             <div className="flex items-center gap-4">
-              <button
-                type="button"
-                aria-label="Trocar avatar"
-                disabled={isUploadingAvatar || !profile}
-                onClick={() => setAvatarDialogOpen(true)}
-                className="group relative rounded-full transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60 disabled:active:scale-100"
-              >
-                <UserAvatar
-                  profile={
-                    profile
-                      ? { ...profile, avatarUrl: avatarPreview || avatarUrl || null }
-                      : null
-                  }
-                  size="lg"
-                />
-                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-background/60 opacity-0 transition group-hover:opacity-100">
-                  <Pencil className="size-5" />
-                </span>
-              </button>
+              <IconTooltip label="Trocar avatar">
+                <button
+                  type="button"
+                  aria-label="Trocar avatar"
+                  disabled={isUploadingAvatar || !profile}
+                  onClick={() => setAvatarDialogOpen(true)}
+                  className="group relative rounded-full transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60 disabled:active:scale-100"
+                >
+                  <UserAvatar
+                    profile={
+                      profile
+                        ? {
+                            ...profile,
+                            avatarUrl: avatarPreview || avatarUrl || null,
+                          }
+                        : null
+                    }
+                    size="lg"
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-background/60 opacity-0 transition group-hover:opacity-100">
+                    <Pencil className="size-5" />
+                  </span>
+                </button>
+              </IconTooltip>
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-medium">Foto de perfil</span>
                 <span className="text-xs text-muted-foreground">

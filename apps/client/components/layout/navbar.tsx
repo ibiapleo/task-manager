@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner'
 import { useAuth } from '@/components/auth-provider'
 import { UserAvatar } from '@/components/user-avatar'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useProfile } from '@/hooks/use-profile'
 import { cn } from '@/lib/utils'
@@ -101,21 +102,25 @@ export function Navbar() {
             )}
             {isLoggingOut ? 'Saindo...' : 'Sair'}
           </button>
-          <Link href="/settings" aria-label="Ajustes do perfil" className="ml-1">
-            <UserAvatar profile={profile} size="sm" />
-          </Link>
+          <IconTooltip label="Ajustes">
+            <Link href="/settings" aria-label="Ajustes" className="ml-1">
+              <UserAvatar profile={profile} size="sm" />
+            </Link>
+          </IconTooltip>
         </div>
 
         {/* Mobile trigger */}
-        <button
-          type="button"
-          aria-label="Abrir menu"
-          aria-expanded={open}
-          onClick={() => setOpen(true)}
-          className="ml-auto inline-flex size-9 items-center justify-center rounded-full border border-border/60 md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Menu className="size-5" />
-        </button>
+        <IconTooltip label="Abrir menu">
+          <button
+            type="button"
+            aria-label="Abrir menu"
+            aria-expanded={open}
+            onClick={() => setOpen(true)}
+            className="ml-auto inline-flex size-9 items-center justify-center rounded-full border border-border/60 md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Menu className="size-5" />
+          </button>
+        </IconTooltip>
       </nav>
 
       {/* Mobile Sheet */}
@@ -139,14 +144,16 @@ export function Navbar() {
                 <UserAvatar profile={profile} size="sm" />
                 Menu
               </span>
-              <button
-                type="button"
-                aria-label="Fechar menu"
-                onClick={() => setOpen(false)}
-                className="inline-flex size-9 items-center justify-center rounded-full border border-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <X className="size-5" />
-              </button>
+              <IconTooltip label="Fechar">
+                <button
+                  type="button"
+                  aria-label="Fechar"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex size-9 items-center justify-center rounded-full border border-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <X className="size-5" />
+                </button>
+              </IconTooltip>
             </div>
             <nav className="mt-4 flex flex-col gap-1">
               {items.map((item) => {
