@@ -228,6 +228,7 @@ export function TasksBoard({
 
       <TaskDetailsModal
         task={detailsTask}
+        showOwner={showOwner}
         onOpenChange={(open) => !open && setDetailsTask(null)}
       />
     </>

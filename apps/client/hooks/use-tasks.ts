@@ -60,10 +60,10 @@ export function useCreateTask() {
         createdAt: now,
         updatedAt: now,
         profileId: profile?.id ?? '',
-        owner: {
+        user: {
           id: profile?.id ?? '',
           name: profile?.name ?? null,
-          email: profile?.email ?? '',
+          avatarUrl: profile?.avatarUrl ?? null,
         },
         attachments: (input.attachments ?? []).map((url) => ({
           id: `optimistic-${crypto.randomUUID()}`,

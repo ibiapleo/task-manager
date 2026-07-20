@@ -1,4 +1,3 @@
-import type { ProfileResponse } from '@task-manager/shared-types'
 import { cn } from '@/lib/utils'
 
 const SIZE_CLASSES = {
@@ -16,7 +15,11 @@ function initialsFrom(name?: string | null, email?: string | null): string {
 }
 
 interface UserAvatarProps {
-  profile?: Pick<ProfileResponse, 'name' | 'email' | 'avatarUrl'> | null
+  profile?: {
+    name?: string | null
+    email?: string | null
+    avatarUrl?: string | null
+  } | null
   size?: keyof typeof SIZE_CLASSES
   className?: string
 }
