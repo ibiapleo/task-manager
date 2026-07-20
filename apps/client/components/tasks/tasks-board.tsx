@@ -20,8 +20,10 @@ import type { TaskFilterInput } from '@task-manager/shared-types'
 import {
   useDeleteTask,
   useDeleteTasks,
+  useDuplicateTask,
   useTasksQuery,
   useUpdateTask,
+  useUpdateTasks,
 } from '@/hooks/use-tasks'
 import { BatchActionsBar } from '@/components/tasks/batch-actions-bar'
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
@@ -29,7 +31,7 @@ import { KanbanColumn } from '@/components/tasks/kanban-column'
 import { TaskCard } from '@/components/tasks/task-card'
 import { TaskDetailsModal } from '@/components/tasks/task-details-modal'
 import { TaskPagination } from '@/components/tasks/task-pagination'
-import type { Task, TaskStatus } from '@/lib/types'
+import type { Priority, Task, TaskStatus } from '@/lib/types'
 
 const STATUSES: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED']
 
@@ -54,8 +56,10 @@ export function TasksBoard({
 }) {
   const { data, isLoading, isError } = useTasksQuery(filters)
   const updateTask = useUpdateTask()
+  const updateTasks = useUpdateTasks()
   const deleteTask = useDeleteTask()
   const deleteTasks = useDeleteTasks()
+  const duplicateTask = useDuplicateTask()
   const showOwner = scope === 'all'
   const meta = data?.meta
 
@@ -195,6 +199,37 @@ export function TasksBoard({
     })
   }
 
+  async function handleBatchUpdate(
+    patch: { status?: TaskStatus; priority?: Priority; dueDate?: string },
+    successMessage: string,
+  ) {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    try {
+      await updateTasks.mutateAsync({ ids, ...patch })
+      toast.success(successMessage)
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível atualizar as tarefas.',
+      )
+    }
+  }
+
+  async function handleDuplicate(taskId: string) {
+    try {
+      await duplicateTask.mutateAsync(taskId)
+      toast.success('Tarefa duplicada.')
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível duplicar a tarefa.',
+      )
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
@@ -251,6 +286,7 @@ export function TasksBoard({
                 selectedIds={selectedIds}
                 onSelectedChange={handleSelectedChange}
                 onDelete={(task) => setToDelete(task)}
+                onDuplicate={(task) => void handleDuplicate(task.id)}
                 onOpen={(task) => setDetailsTask(task)}
               />
             ))}
@@ -279,6 +315,7 @@ export function TasksBoard({
                 handleSelectedChange(task.id, selected)
               }
               onDelete={() => setToDelete(task)}
+              onDuplicate={() => void handleDuplicate(task.id)}
               onOpen={() => setDetailsTask(task)}
             />
           ))}
@@ -301,6 +338,38 @@ export function TasksBoard({
 
       <BatchActionsBar
         selectedCount={selectedCount}
+        onStatusChange={(status) =>
+          void handleBatchUpdate(
+            { status },
+            selectedCount === 1
+              ? 'Status atualizado.'
+              : `Status atualizado em ${selectedCount} tarefas.`,
+          )
+        }
+        onPriorityChange={(priority) =>
+          void handleBatchUpdate(
+            { priority },
+            selectedCount === 1
+              ? 'Prioridade atualizada.'
+              : `Prioridade atualizada em ${selectedCount} tarefas.`,
+          )
+        }
+        onDueDateChange={(dueDate) =>
+          void handleBatchUpdate(
+            { dueDate },
+            selectedCount === 1
+              ? 'Data de vencimento atualizada.'
+              : `Data atualizada em ${selectedCount} tarefas.`,
+          )
+        }
+        onMarkCompleted={() =>
+          void handleBatchUpdate(
+            { status: 'COMPLETED' },
+            selectedCount === 1
+              ? 'Tarefa concluída.'
+              : `${selectedCount} tarefas concluídas.`,
+          )
+        }
         onDelete={() => setBatchDeleteIds(Array.from(selectedIds))}
       />
 
@@ -374,6 +443,11 @@ export function TasksBoard({
         task={detailsTask}
         showOwner={showOwner}
         onOpenChange={(open) => !open && setDetailsTask(null)}
+        onDuplicate={
+          detailsTask
+            ? () => void handleDuplicate(detailsTask.id)
+            : undefined
+        }
       />
     </>
   )

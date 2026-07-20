@@ -4,6 +4,7 @@ import { forwardRef } from 'react'
 import {
   CalendarDays,
   Check,
+  Copy,
   GripVertical,
   Loader2,
   Paperclip,
@@ -42,6 +43,7 @@ interface TaskCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onSelectedChange?: (selected: boolean) => void
   handleProps?: React.HTMLAttributes<HTMLButtonElement>
   onDelete?: () => void
+  onDuplicate?: () => void
   onOpen?: () => void
 }
 
@@ -57,6 +59,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       onSelectedChange,
       handleProps,
       onDelete,
+      onDuplicate,
       onOpen,
       className,
       style,
@@ -173,6 +176,19 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-accent/15 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Pencil className="size-4" />
+                </button>
+              )}
+              {onDuplicate && (
+                <button
+                  type="button"
+                  aria-label={`Duplicar tarefa ${task.title}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDuplicate()
+                  }}
+                  className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-card/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Copy className="size-4" />
                 </button>
               )}
               {onDelete && (

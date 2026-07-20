@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CalendarDays, X } from 'lucide-react'
+import { CalendarDays, Copy, X } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   UpdateTaskInputSchema,
@@ -12,7 +12,7 @@ import {
 } from '@task-manager/shared-types'
 import { AttachmentList } from '@/components/tasks/attachment-list'
 import { FileUploader } from '@/components/file-uploader'
-import { useUpdateTask } from '@/hooks/use-tasks'
+import { useDuplicateTask, useUpdateTask } from '@/hooks/use-tasks'
 import { useProfile } from '@/hooks/use-profile'
 import { usePendingAttachments } from '@/hooks/use-pending-attachments'
 import { useFormattedDate } from '@/hooks/use-formatted-date'
@@ -62,13 +62,17 @@ export function TaskDetailsModal({
   task,
   onOpenChange,
   showOwner = false,
+  onDuplicate,
 }: {
   task: TaskResponse | null
   onOpenChange: (open: boolean) => void
   showOwner?: boolean
+  onDuplicate?: () => void | Promise<void>
 }) {
   const { data: profile } = useProfile()
   const updateTask = useUpdateTask()
+  const duplicateTask = useDuplicateTask()
+  const [isDuplicating, setIsDuplicating] = useState(false)
   const {
     pending: pendingFiles,
     add: addPendingFile,
@@ -123,7 +127,30 @@ export function TaskDetailsModal({
   if (!task) return null
 
   const activeTask = task
-  const busy = updateTask.isPending || isUploadingAttachments
+  const busy = updateTask.isPending || isUploadingAttachments || isDuplicating
+
+  async function handleDuplicate() {
+    if (busy) return
+    try {
+      setIsDuplicating(true)
+      if (onDuplicate) {
+        await onDuplicate()
+      } else {
+        await duplicateTask.mutateAsync(activeTask.id)
+        toast.success('Tarefa duplicada.')
+      }
+    } catch (error) {
+      if (!onDuplicate) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível duplicar a tarefa.',
+        )
+      }
+    } finally {
+      setIsDuplicating(false)
+    }
+  }
 
   async function onSubmit(values: UpdateTaskInput) {
     let uploadedUrls: string[] = []
@@ -326,29 +353,40 @@ export function TaskDetailsModal({
             )}
           </section>
 
-          <div className="flex justify-end gap-3 border-t border-border/40 pt-4">
+          <div className="flex justify-between gap-3 border-t border-border/40 pt-4">
             <button
               type="button"
               disabled={busy}
-              onClick={closeDialog}
-              className="inline-flex h-10 items-center rounded-full border border-border/60 bg-card/40 px-5 text-sm font-medium transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:active:scale-100"
+              onClick={() => void handleDuplicate()}
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-border/60 bg-card/40 px-5 text-sm font-medium transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:active:scale-100"
             >
-              Cancelar
+              <Copy className="size-4" />
+              {isDuplicating ? 'Duplicando...' : 'Duplicar'}
             </button>
-            <button
-              type="submit"
-              disabled={busy}
-              className={cn(
-                'inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition active:scale-95',
-                'hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-70 disabled:active:scale-100',
-              )}
-            >
-              {isUploadingAttachments
-                ? 'Enviando anexos...'
-                : updateTask.isPending
-                  ? 'Salvando...'
-                  : 'Salvar alterações'}
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={closeDialog}
+                className="inline-flex h-10 items-center rounded-full border border-border/60 bg-card/40 px-5 text-sm font-medium transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:active:scale-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={busy}
+                className={cn(
+                  'inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition active:scale-95',
+                  'hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-70 disabled:active:scale-100',
+                )}
+              >
+                {isUploadingAttachments
+                  ? 'Enviando anexos...'
+                  : updateTask.isPending
+                    ? 'Salvando...'
+                    : 'Salvar alterações'}
+              </button>
+            </div>
           </div>
         </form>
       </GlassCard>

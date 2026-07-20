@@ -310,7 +310,8 @@
   display: none;
 }
 
-/* Circular selection checkbox */
+/* Selection checkbox — fill uses --primary; mark uses --primary-foreground
+   so light themes (dark primary) and dark/seal (light primary) both contrast. */
 .checkbox-circle {
   appearance: none;
   width: 1rem;
@@ -329,19 +330,37 @@
 .checkbox-circle:indeterminate {
   border-color: var(--primary);
   background-color: var(--primary);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+  background-image: none;
+  position: relative;
 }
-.checkbox-circle:checked {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5l2.5 2.5 5.5-5.5'/%3E%3C/svg%3E");
+.checkbox-circle:checked::after,
+.checkbox-circle:indeterminate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--primary-foreground);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
 }
-.checkbox-circle:indeterminate {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+.checkbox-circle:checked::after {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5l2.5 2.5 5.5-5.5'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5l2.5 2.5 5.5-5.5'/%3E%3C/svg%3E");
+}
+.checkbox-circle:indeterminate::after {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
 }
 .checkbox-circle:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+}
+
+[data-theme='retro'] .checkbox-circle {
+  border-radius: 0;
 }
 
 .no-scrollbar::-webkit-scrollbar {

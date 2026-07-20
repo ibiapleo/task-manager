@@ -16,10 +16,13 @@ interface PillSelectProps<T extends string> {
   onChange: (value: T) => void
   label?: string
   className?: string
+  /** Where the menu opens relative to the trigger. Default: bottom. */
+  placement?: 'top' | 'bottom'
 }
 
 interface MenuRect {
-  top: number
+  top?: number
+  bottom?: number
   left: number
   width: number
 }
@@ -30,6 +33,7 @@ export function PillSelect<T extends string>({
   onChange,
   label,
   className,
+  placement = 'bottom',
 }: PillSelectProps<T>) {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
@@ -48,6 +52,14 @@ export function PillSelect<T extends string>({
   function updateMenuRect() {
     const rect = triggerRef.current?.getBoundingClientRect()
     if (!rect) return
+    if (placement === 'top') {
+      setMenuRect({
+        bottom: window.innerHeight - rect.top + 8,
+        left: rect.right - rect.width,
+        width: rect.width,
+      })
+      return
+    }
     setMenuRect({
       top: rect.bottom + 8,
       left: rect.right - rect.width,
@@ -58,7 +70,7 @@ export function PillSelect<T extends string>({
   useLayoutEffect(() => {
     if (!open) return
     updateMenuRect()
-  }, [open])
+  }, [open, placement])
 
   useEffect(() => {
     if (!open) return
@@ -84,7 +96,7 @@ export function PillSelect<T extends string>({
       window.removeEventListener('scroll', onReposition, true)
       window.removeEventListener('resize', onReposition)
     }
-  }, [open, options, value])
+  }, [open, options, value, placement])
 
   function commit(v: T) {
     onChange(v)
@@ -93,7 +105,12 @@ export function PillSelect<T extends string>({
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (!open) {
-      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+      if (
+        e.key === 'Enter' ||
+        e.key === ' ' ||
+        e.key === 'ArrowDown' ||
+        e.key === 'ArrowUp'
+      ) {
         e.preventDefault()
         setOpen(true)
       }
@@ -128,7 +145,11 @@ export function PillSelect<T extends string>({
       >
         <span>{selected?.label}</span>
         <ChevronDown
-          className={cn('size-4 transition-transform', open && 'rotate-180')}
+          className={cn(
+            'size-4 transition-transform',
+            open && (placement === 'top' ? 'rotate-0' : 'rotate-180'),
+            !open && placement === 'top' && 'rotate-180',
+          )}
         />
       </button>
       {open &&
@@ -142,10 +163,11 @@ export function PillSelect<T extends string>({
             style={{
               position: 'fixed',
               top: menuRect.top,
+              bottom: menuRect.bottom,
               left: menuRect.left,
               width: menuRect.width,
             }}
-            className="glass z-50 min-w-40 overflow-hidden rounded-2xl p-1.5"
+            className="z-[120] min-w-40 overflow-hidden rounded-2xl border border-border bg-card p-1.5 text-card-foreground shadow-2xl"
           >
             {options.map((opt, i) => {
               const isSelected = opt.value === value
@@ -157,7 +179,9 @@ export function PillSelect<T extends string>({
                     onClick={() => commit(opt.value)}
                     className={cn(
                       'flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition',
-                      i === active ? 'bg-primary/10' : 'hover:bg-card/60',
+                      i === active
+                        ? 'bg-accent/15 text-foreground'
+                        : 'hover:bg-muted',
                     )}
                   >
                     {opt.label}
