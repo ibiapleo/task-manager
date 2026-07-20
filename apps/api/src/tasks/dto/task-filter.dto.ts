@@ -9,6 +9,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -57,6 +58,15 @@ export class TaskFilterDto {
   @IsString()
   @MaxLength(120)
   search?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Filter by task owner profile id. Only applied for ADMIN with scope=all.',
+    example: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+  })
+  @IsOptional()
+  @IsUUID()
+  profileId?: string;
 
   @ApiPropertyOptional({
     description:

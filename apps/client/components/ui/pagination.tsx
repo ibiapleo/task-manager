@@ -3,25 +3,38 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface TaskPaginationProps {
+function pluralize(count: number, singular: string): string {
+  if (count === 1) return singular
+  if (singular.endsWith('m')) return `${singular.slice(0, -1)}ns`
+  if (singular.endsWith('ão')) return `${singular.slice(0, -2)}ões`
+  if (singular.endsWith('l')) return `${singular.slice(0, -1)}is`
+  if (singular.endsWith('r') || singular.endsWith('z')) return `${singular}es`
+  return `${singular}s`
+}
+
+interface PaginationProps {
   page: number
   totalPages: number
   total?: number
+  /** Singular label for the total line (e.g. "tarefa", "usuário"). */
+  itemLabel: string
   onPageChange: (page: number) => void
   className?: string
 }
 
-export function TaskPagination({
+export function Pagination({
   page,
   totalPages,
   total,
+  itemLabel,
   onPageChange,
   className,
-}: TaskPaginationProps) {
+}: PaginationProps) {
   if (totalPages <= 1) return null
 
   const atStart = page <= 1
   const atEnd = page >= totalPages
+  const pageOptions = Array.from({ length: totalPages }, (_, i) => i + 1)
 
   return (
     <nav
@@ -46,16 +59,32 @@ export function TaskPagination({
         Anterior
       </button>
 
-      <p className="min-w-[8rem] text-center text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">
-          Página {page} de {totalPages}
-        </span>
+      <div className="flex flex-col items-center gap-0.5">
+        <label className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Página</span>
+          <select
+            aria-label="Selecionar página"
+            value={page}
+            onChange={(e) => onPageChange(Number(e.target.value))}
+            className={cn(
+              'h-8 min-w-[3.25rem] cursor-pointer appearance-none rounded-full border border-border/60 bg-card/60 px-2.5 text-center text-sm font-medium text-foreground outline-none',
+              'transition hover:bg-card/80 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50',
+            )}
+          >
+            {pageOptions.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <span className="font-medium text-foreground">de {totalPages}</span>
+        </label>
         {typeof total === 'number' && (
-          <span className="mt-0.5 block text-xs">
-            {total} {total === 1 ? 'tarefa' : 'tarefas'}
+          <span className="text-xs text-muted-foreground">
+            {total} {pluralize(total, itemLabel)}
           </span>
         )}
-      </p>
+      </div>
 
       <button
         type="button"

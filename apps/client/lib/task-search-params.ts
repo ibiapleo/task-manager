@@ -17,6 +17,8 @@ export interface TaskSearchState {
   status?: TaskStatus
   priority?: Priority
   q: string
+  /** Owner profile id when filtering global board (ADMIN + scope=all). */
+  userId?: string
   due: DuePreset
   sort: TaskSortField
   order: SortOrder
@@ -51,6 +53,14 @@ function parsePositiveInt(value: string | null, fallback: number): number {
   return Number.isFinite(n) && n >= 1 ? n : fallback
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function parseUuid(value: string | null): string | undefined {
+  if (!value) return undefined
+  return UUID_RE.test(value) ? value : undefined
+}
+
 function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
@@ -80,6 +90,7 @@ export function parseTaskSearchParams(
     status: isOneOf(statusRaw, STATUSES) ? statusRaw : undefined,
     priority: isOneOf(priorityRaw, PRIORITIES) ? priorityRaw : undefined,
     q,
+    userId: parseUuid(params.get('user')),
     due: isOneOf(dueRaw, DUES) ? dueRaw : DEFAULT_TASK_SEARCH.due,
     sort: isOneOf(sortRaw, SORTS) ? sortRaw : DEFAULT_TASK_SEARCH.sort,
     order: isOneOf(orderRaw, ORDERS) ? orderRaw : DEFAULT_TASK_SEARCH.order,
@@ -96,6 +107,7 @@ export function serializeTaskSearchParams(
   if (state.status) params.set('status', state.status)
   if (state.priority) params.set('priority', state.priority)
   if (state.q) params.set('q', state.q)
+  if (state.userId) params.set('user', state.userId)
   if (state.due !== DEFAULT_TASK_SEARCH.due) params.set('due', state.due)
   if (state.sort !== DEFAULT_TASK_SEARCH.sort) params.set('sort', state.sort)
   if (state.order !== DEFAULT_TASK_SEARCH.order) params.set('order', state.order)
@@ -119,6 +131,7 @@ export function toTaskFilterInput(state: TaskSearchState): TaskFilterInput {
   if (state.status) filter.status = state.status
   if (state.priority) filter.priority = state.priority
   if (state.q) filter.search = state.q
+  if (state.scope === 'all' && state.userId) filter.profileId = state.userId
 
   switch (state.due) {
     case 'overdue':

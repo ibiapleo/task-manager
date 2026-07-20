@@ -75,7 +75,9 @@ export class UsersController {
   @Roles(Role.ADMIN)
   @ApiOperation({
     summary: 'List users',
-    description: 'Paginated list of every profile. Restricted to ADMIN.',
+    description:
+      'Paginated list of every profile (query: page, limit). Restricted to ADMIN. ' +
+      'Response includes meta: page, limit, total, totalPages.',
   })
   @ApiResponse({ status: 200, description: 'Paginated list of users.' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters.' })

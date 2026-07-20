@@ -30,7 +30,7 @@ import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import { KanbanColumn } from '@/components/tasks/kanban-column'
 import { TaskCard } from '@/components/tasks/task-card'
 import { TaskDetailsModal } from '@/components/tasks/task-details-modal'
-import { TaskPagination } from '@/components/tasks/task-pagination'
+import { Pagination } from '@/components/ui/pagination'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import type { Priority, Task, TaskStatus } from '@/lib/types'
 
@@ -357,10 +357,11 @@ export function TasksBoard({
             </div>
           )}
           {viewMode === 'list' && meta && onPageChange && (
-            <TaskPagination
+            <Pagination
               page={meta.page}
               totalPages={meta.totalPages}
               total={meta.total}
+              itemLabel="tarefa"
               onPageChange={onPageChange}
               className="mt-3 self-center"
             />
