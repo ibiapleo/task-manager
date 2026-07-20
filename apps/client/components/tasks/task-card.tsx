@@ -179,11 +179,9 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
           )}
 
           {showOwner && task.user && (
-            <button
-              type="button"
+            <span
               aria-label={`Responsável: ${ownerName}`}
-              onClick={(e) => e.stopPropagation()}
-              className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full border border-border/60 bg-card/50 py-1 pr-3 pl-1 text-xs font-medium text-foreground transition hover:bg-card/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full border border-border/60 bg-card/50 py-1 pr-3 pl-1 text-xs font-medium text-foreground"
             >
               <UserAvatar
                 profile={{
@@ -194,7 +192,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 className="size-6 text-[10px]"
               />
               <span className="truncate">{ownerName}</span>
-            </button>
+            </span>
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
