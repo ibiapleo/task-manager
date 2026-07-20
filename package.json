@@ -1,0 +1,31 @@
+{
+  "name": "task-manager",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,client -c blue,magenta \"yarn:start:dev\" \"yarn:client:dev\"",
+    "start:dev": "yarn workspace api start:dev",
+    "build": "yarn workspace api build",
+    "lint": "yarn workspace api lint",
+    "test": "yarn workspace api test",
+    "test:e2e": "yarn workspace api test:e2e",
+    "prisma:generate": "yarn workspace api prisma:generate",
+    "prisma:migrate": "yarn workspace api prisma:migrate",
+    "client:dev": "yarn workspace client dev",
+    "client:build": "yarn workspace client build",
+    "client:lint": "yarn workspace client lint",
+    "build:all": "yarn build && yarn client:build",
+    "lint:all": "yarn lint && yarn client:lint"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "yarn@1.22.22"
+}
