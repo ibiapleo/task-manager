@@ -68,9 +68,10 @@ export function useCreateTask() {
           name: profile?.name ?? null,
           avatarUrl: profile?.avatarUrl ?? null,
         },
-        attachments: (input.attachments ?? []).map((url) => ({
+        attachments: (input.attachments ?? []).map((attachment) => ({
           id: `optimistic-${crypto.randomUUID()}`,
-          url,
+          url: attachment.url,
+          originalName: attachment.originalName,
           fileType: 'unknown',
           createdAt: now,
         })),
@@ -118,7 +119,7 @@ export function useUpdateTask() {
           ...data,
           data: data.data.map((task) => {
             if (task.id !== id) return task
-            const { attachments: nextUrls, ...scalarPatch } = patch
+            const { attachments: nextAttachments, ...scalarPatch } = patch
             const next: TaskResponse = {
               ...task,
               ...scalarPatch,
@@ -132,10 +133,11 @@ export function useUpdateTask() {
                   ? scalarPatch.dueDate || null
                   : task.dueDate,
             }
-            if (nextUrls) {
-              next.attachments = nextUrls.map((url) => ({
+            if (nextAttachments) {
+              next.attachments = nextAttachments.map((attachment) => ({
                 id: `optimistic-${crypto.randomUUID()}`,
-                url,
+                url: attachment.url,
+                originalName: attachment.originalName,
                 fileType: 'unknown',
                 createdAt: new Date().toISOString(),
               }))

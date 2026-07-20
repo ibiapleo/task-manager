@@ -17,7 +17,7 @@ import { usePendingAttachments } from '@/hooks/use-pending-attachments'
 import { GlassCard } from '@/components/ui/glass'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { PillSelect } from '@/components/ui/pill-select'
-import { STORAGE_BUCKETS, uploadFiles } from '@/lib/storage'
+import { STORAGE_BUCKETS, uploadTaskAttachments } from '@/lib/storage'
 import type { Priority, TaskStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -99,11 +99,11 @@ export function AddTaskDialog({
   if (!open) return null
 
   async function onSubmit(values: CreateTaskInput) {
-    let uploadedUrls: string[] = []
+    let uploaded: { url: string; originalName: string }[] = []
     if (pendingFiles.length > 0 && profile) {
       setIsUploadingAttachments(true)
       try {
-        uploadedUrls = await uploadFiles(
+        uploaded = await uploadTaskAttachments(
           STORAGE_BUCKETS.tasks,
           profile.id,
           pendingFiles.map((p) => p.file),
@@ -123,7 +123,7 @@ export function AddTaskDialog({
         title: values.title.trim(),
         description: values.description?.trim() || undefined,
         dueDate: values.dueDate || undefined,
-        attachments: [...(values.attachments ?? []), ...uploadedUrls],
+        attachments: [...(values.attachments ?? []), ...uploaded],
       }
       await createTask.mutateAsync(payload)
       toast.success('Tarefa criada.')
@@ -245,11 +245,11 @@ export function AddTaskDialog({
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">Anexos</span>
             <AttachmentList
-              urls={attachments}
+              attachments={attachments}
               onRemove={(url) =>
                 setValue(
                   'attachments',
-                  attachments.filter((a) => a !== url),
+                  attachments.filter((a) => a.url !== url),
                 )
               }
               pending={pendingFiles}

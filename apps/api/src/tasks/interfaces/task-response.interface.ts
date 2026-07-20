@@ -5,6 +5,7 @@ import { Priority, TaskStatus } from '@prisma/client';
 export interface AttachmentResponse {
   id: string;
   url: string;
+  originalName: string;
   fileType: string;
   createdAt: Date;
 }

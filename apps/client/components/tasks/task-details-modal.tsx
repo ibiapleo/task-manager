@@ -19,7 +19,7 @@ import { useFormattedDate } from '@/hooks/use-formatted-date'
 import { GlassCard } from '@/components/ui/glass'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { PillSelect } from '@/components/ui/pill-select'
-import { STORAGE_BUCKETS, uploadFiles } from '@/lib/storage'
+import { STORAGE_BUCKETS, uploadTaskAttachments } from '@/lib/storage'
 import type { Priority, TaskStatus } from '@/lib/types'
 import { STATUS_META } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -50,7 +50,10 @@ function toFormValues(task: TaskResponse): UpdateTaskInput {
     dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '',
     status: task.status,
     priority: task.priority,
-    attachments: task.attachments.map((a) => a.url),
+    attachments: task.attachments.map((a) => ({
+      url: a.url,
+      originalName: a.originalName,
+    })),
   }
 }
 
@@ -154,11 +157,11 @@ export function TaskDetailsModal({
   }
 
   async function onSubmit(values: UpdateTaskInput) {
-    let uploadedUrls: string[] = []
+    let uploaded: { url: string; originalName: string }[] = []
     if (pendingFiles.length > 0 && profile) {
       setIsUploadingAttachments(true)
       try {
-        uploadedUrls = await uploadFiles(
+        uploaded = await uploadTaskAttachments(
           STORAGE_BUCKETS.tasks,
           profile.id,
           pendingFiles.map((p) => p.file),
@@ -178,7 +181,7 @@ export function TaskDetailsModal({
         title: values.title?.trim(),
         description: values.description?.trim() || undefined,
         dueDate: values.dueDate || undefined,
-        attachments: [...(values.attachments ?? []), ...uploadedUrls],
+        attachments: [...(values.attachments ?? []), ...uploaded],
       }
       await updateTask.mutateAsync({ id: activeTask.id, patch: payload })
       toast.success('Tarefa atualizada.')
@@ -337,11 +340,11 @@ export function TaskDetailsModal({
             <h3 className="text-sm font-semibold tracking-tight">Anexos</h3>
             <AttachmentList
               variant="gallery"
-              urls={attachments}
+              attachments={attachments}
               onRemove={(url) =>
                 setValue(
                   'attachments',
-                  attachments.filter((a) => a !== url),
+                  attachments.filter((a) => a.url !== url),
                 )
               }
               pending={pendingFiles}

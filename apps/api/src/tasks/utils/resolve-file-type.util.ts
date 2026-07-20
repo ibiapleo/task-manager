@@ -1,6 +1,6 @@
-// The client uploads attachments directly to Supabase Storage and only
-// sends us the resulting URL, so we infer a simple "file type" (extension)
-// from it instead of requiring an extra field on the DTO.
+// The client uploads attachments directly to Supabase Storage and sends
+// URL + originalName; we still infer a simple "file type" (extension)
+// from the storage URL for the Attachment.fileType column.
 export function resolveFileType(url: string): string {
   const withoutQuery = url.split(/[?#]/)[0];
   const lastSegment = withoutQuery.split('/').pop() ?? '';

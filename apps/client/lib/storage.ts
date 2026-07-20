@@ -7,24 +7,37 @@ export const STORAGE_BUCKETS = {
 } as const
 
 /**
+ * Result of a task attachment upload. The storage object key is an opaque
+ * UUID (Supabase rejects many unicode characters in keys). The exact
+ * user-facing filename is carried separately as `originalName`.
+ */
+export interface UploadedAttachment {
+  url: string
+  /** Exact `File.name` as picked by the user — accents and punctuation preserved. */
+  originalName: string
+}
+
+function buildObjectKey(pathPrefix: string, file: File): string {
+  const extension = file.name.split('.').pop()
+  const safeExt =
+    extension && /^[a-zA-Z0-9]{1,16}$/.test(extension) ? `.${extension}` : ''
+  return `${pathPrefix}/${crypto.randomUUID()}${safeExt}`
+}
+
+/**
  * Uploads a single file straight from the browser to Supabase Storage and
- * returns its public URL. The API is never involved in the byte transfer -
- * it only ever persists the resulting URL (see UpdateProfileDto.avatarUrl /
- * CreateTaskDto.attachments).
+ * returns its public URL. The object key is always a UUID (+ safe extension)
+ * so Supabase never rejects the key for special characters in the real name.
  *
- * Callers are expected to wrap this in their own try/catch and surface a
- * friendly toast - raw storage errors (e.g. "Bucket not found", RLS policy
- * errors) should never reach the end user directly.
+ * Callers that need the display name should keep `file.name` themselves
+ * (see `uploadTaskAttachments`).
  */
 export async function uploadFile(
   bucket: string,
   pathPrefix: string,
   file: File,
 ): Promise<string> {
-  const extension = file.name.split('.').pop()
-  const fileName = `${pathPrefix}/${crypto.randomUUID()}${
-    extension ? `.${extension}` : ''
-  }`
+  const fileName = buildObjectKey(pathPrefix, file)
 
   const { error } = await supabase.storage
     .from(bucket)
@@ -36,11 +49,19 @@ export async function uploadFile(
   return data.publicUrl
 }
 
-/** Uploads several files in parallel, preserving input order in the result. */
-export async function uploadFiles(
+/**
+ * Uploads task attachments in parallel. Returns public URLs paired with the
+ * exact original filenames for API persistence and UI display.
+ */
+export async function uploadTaskAttachments(
   bucket: string,
   pathPrefix: string,
   files: File[],
-): Promise<string[]> {
-  return Promise.all(files.map((file) => uploadFile(bucket, pathPrefix, file)))
+): Promise<UploadedAttachment[]> {
+  return Promise.all(
+    files.map(async (file) => {
+      const url = await uploadFile(bucket, pathPrefix, file)
+      return { url, originalName: file.name }
+    }),
+  )
 }

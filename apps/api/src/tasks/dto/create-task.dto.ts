@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Priority, TaskStatus } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -10,7 +11,28 @@ import {
   IsString,
   IsUrl,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
+
+export class AttachmentInputDto {
+  @ApiProperty({
+    description: 'Public URL of the file in Supabase Storage.',
+    example:
+      'https://project.supabase.co/storage/v1/object/public/tasks/user-id/1710000000000-spec.pdf',
+  })
+  @IsUrl()
+  url: string;
+
+  @ApiProperty({
+    description: 'Original filename as sent by the user (for display/download).',
+    example: 'spec.pdf',
+    maxLength: 255,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  originalName: string;
+}
 
 export class CreateTaskDto {
   @ApiProperty({
@@ -62,15 +84,19 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional({
     description:
-      'Attachment URLs (uploaded by the client to Supabase Storage).',
-    type: [String],
+      'Attachments already uploaded to Supabase Storage (URL + original filename).',
+    type: [AttachmentInputDto],
     example: [
-      'https://project.supabase.co/storage/v1/object/public/tasks/spec.pdf',
+      {
+        url: 'https://project.supabase.co/storage/v1/object/public/tasks/user-id/1710000000000-spec.pdf',
+        originalName: 'spec.pdf',
+      },
     ],
   })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)
-  @IsUrl({}, { each: true })
-  attachments?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => AttachmentInputDto)
+  attachments?: AttachmentInputDto[];
 }
