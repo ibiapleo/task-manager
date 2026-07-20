@@ -14,6 +14,7 @@ type MockPrismaService = {
     findUnique: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
+    deleteMany: jest.Mock;
   };
   $transaction: jest.Mock;
 };
@@ -93,6 +94,7 @@ describe('TasksService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        deleteMany: jest.fn(),
       },
       $transaction: jest.fn(),
     };
@@ -179,6 +181,69 @@ describe('TasksService', () => {
         service.remove(task.id, otherCommonUser),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(prisma.task.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('removeMany', () => {
+    const TASK_A = '11111111-1111-4111-8111-111111111111';
+    const TASK_B = '22222222-2222-4222-8222-222222222222';
+
+    beforeEach(() => {
+      prisma.$transaction.mockImplementation(
+        (operations: Promise<unknown>[]) => Promise.all(operations),
+      );
+      prisma.task.deleteMany.mockResolvedValue({ count: 2 });
+    });
+
+    it('allows a COMMON user to delete their own tasks', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        { id: TASK_A, profileId: OWNER_ID },
+        { id: TASK_B, profileId: OWNER_ID },
+      ]);
+
+      const result = await service.removeMany([TASK_A, TASK_B], ownerUser);
+
+      expect(result.deletedIds).toEqual(
+        expect.arrayContaining([TASK_A, TASK_B]),
+      );
+      expect(prisma.task.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: expect.arrayContaining([TASK_A, TASK_B]) } },
+      });
+    });
+
+    it('rejects COMMON users when any task belongs to someone else', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        { id: TASK_A, profileId: OWNER_ID },
+        { id: TASK_B, profileId: OTHER_USER_ID },
+      ]);
+
+      await expect(
+        service.removeMany([TASK_A, TASK_B], ownerUser),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.task.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('allows an ADMIN to delete tasks owned by others', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        { id: TASK_A, profileId: OTHER_USER_ID },
+        { id: TASK_B, profileId: OWNER_ID },
+      ]);
+
+      const result = await service.removeMany([TASK_A, TASK_B], adminUser);
+
+      expect(result.deletedIds).toHaveLength(2);
+      expect(prisma.task.deleteMany).toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when any id is missing', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        { id: TASK_A, profileId: OWNER_ID },
+      ]);
+
+      await expect(
+        service.removeMany([TASK_A, TASK_B], ownerUser),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.task.deleteMany).not.toHaveBeenCalled();
     });
   });
 

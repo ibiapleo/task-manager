@@ -24,6 +24,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { SupabaseAuthGuard } from '../auth/guards/supabase-auth.guard';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { DeleteTasksBatchDto } from './dto/delete-tasks-batch.dto';
 import { TaskFilterDto } from './dto/task-filter.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TasksService } from './tasks.service';
@@ -170,6 +171,38 @@ export class TasksController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.tasksService.update(id, updateTaskDto, user);
+  }
+
+  @Delete('batch')
+  @ApiOperation({
+    summary: 'Delete multiple tasks',
+    description:
+      'Deletes up to 100 tasks by id in one request. COMMON users may only ' +
+      'delete tasks they own; ADMIN may delete any of the given tasks. ' +
+      'Fails entirely if any id is missing or forbidden.',
+  })
+  @ApiResponse({ status: 200, description: 'Tasks deleted successfully.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error in the request body.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing, invalid or expired access token.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'COMMON user attempting to delete a task they do not own.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'One or more task ids were not found.',
+  })
+  removeMany(
+    @Body() dto: DeleteTasksBatchDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.tasksService.removeMany(dto.ids, user);
   }
 
   @Delete(':id')
