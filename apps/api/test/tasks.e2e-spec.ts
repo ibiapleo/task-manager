@@ -160,7 +160,7 @@ describe('Tasks (e2e)', () => {
           profile: {
             id: mockProfile.id,
             name: mockProfile.name,
-            email: mockProfile.email,
+            avatarUrl: mockProfile.avatarUrl,
           },
         };
         prismaMock.task.create.mockResolvedValue(createdTask);
