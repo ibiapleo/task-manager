@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   closestCorners,
   DndContext,
@@ -17,7 +17,13 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { toast } from 'sonner'
 import type { TaskFilterInput } from '@task-manager/shared-types'
-import { useDeleteTask, useTasksQuery, useUpdateTask } from '@/hooks/use-tasks'
+import {
+  useDeleteTask,
+  useDeleteTasks,
+  useTasksQuery,
+  useUpdateTask,
+} from '@/hooks/use-tasks'
+import { BatchActionsBar } from '@/components/tasks/batch-actions-bar'
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import { KanbanColumn } from '@/components/tasks/kanban-column'
 import { TaskCard } from '@/components/tasks/task-card'
@@ -29,6 +35,10 @@ const STATUSES: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED']
 
 function isStatus(id: string): id is TaskStatus {
   return (STATUSES as string[]).includes(id)
+}
+
+function filtersKey(filters: TaskFilterInput): string {
+  return JSON.stringify(filters)
 }
 
 export function TasksBoard({
@@ -45,19 +55,43 @@ export function TasksBoard({
   const { data, isLoading, isError } = useTasksQuery(filters)
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const deleteTasks = useDeleteTasks()
   const showOwner = scope === 'all'
   const meta = data?.meta
 
   const serverTasks = data?.data ?? []
-  
+
   const [tasks, setTasks] = useState<Task[]>(serverTasks)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [toDelete, setToDelete] = useState<Task | null>(null)
+  const [batchDeleteIds, setBatchDeleteIds] = useState<string[]>([])
   const [detailsTask, setDetailsTask] = useState<Task | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const selectAllRef = useRef<HTMLInputElement>(null)
+
+  const filterKey = filtersKey(filters)
 
   useEffect(() => {
     setTasks(serverTasks)
   }, [data])
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [viewMode, filterKey])
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev
+      const visible = new Set(tasks.map((t) => t.id))
+      let changed = false
+      const next = new Set<string>()
+      for (const id of prev) {
+        if (visible.has(id)) next.add(id)
+        else changed = true
+      }
+      return changed ? next : prev
+    })
+  }, [tasks])
 
   useEffect(() => {
     if (viewMode !== 'list' || !meta || !onPageChange) return
@@ -66,6 +100,18 @@ export function TasksBoard({
       onPageChange(meta.totalPages)
     }
   }, [viewMode, meta, onPageChange])
+
+  const visibleIds = tasks.map((t) => t.id)
+  const selectedCount = selectedIds.size
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
+  const someVisibleSelected = visibleIds.some((id) => selectedIds.has(id))
+
+  useEffect(() => {
+    if (!selectAllRef.current) return
+    selectAllRef.current.indeterminate =
+      someVisibleSelected && !allVisibleSelected
+  }, [someVisibleSelected, allVisibleSelected])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -133,6 +179,22 @@ export function TasksBoard({
     }
   }
 
+  function handleSelectedChange(taskId: string, selected: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (selected) next.add(taskId)
+      else next.delete(taskId)
+      return next
+    })
+  }
+
+  function handleSelectAllVisible(checked: boolean) {
+    setSelectedIds(() => {
+      if (!checked) return new Set()
+      return new Set(visibleIds)
+    })
+  }
+
   if (isLoading) {
     return (
       <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
@@ -151,6 +213,22 @@ export function TasksBoard({
 
   return (
     <>
+      {tasks.length > 0 && (
+        <div className="mb-3 flex items-center gap-2 px-1">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+            <input
+              ref={selectAllRef}
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={(e) => handleSelectAllVisible(e.target.checked)}
+              aria-label="Selecionar todas as tarefas visíveis"
+              className="checkbox-circle"
+            />
+            Selecionar todos
+          </label>
+        </div>
+      )}
+
       {viewMode === 'kanban' ? (
         <DndContext
           sensors={sensors}
@@ -170,6 +248,8 @@ export function TasksBoard({
                 status={status}
                 tasks={tasks.filter((t) => t.status === status)}
                 showOwner={showOwner}
+                selectedIds={selectedIds}
+                onSelectedChange={handleSelectedChange}
                 onDelete={(task) => setToDelete(task)}
                 onOpen={(task) => setDetailsTask(task)}
               />
@@ -194,6 +274,10 @@ export function TasksBoard({
               task={task}
               variant="list"
               showOwner={showOwner}
+              selected={selectedIds.has(task.id)}
+              onSelectedChange={(selected) =>
+                handleSelectedChange(task.id, selected)
+              }
               onDelete={() => setToDelete(task)}
               onOpen={() => setDetailsTask(task)}
             />
@@ -214,6 +298,11 @@ export function TasksBoard({
           )}
         </div>
       )}
+
+      <BatchActionsBar
+        selectedCount={selectedCount}
+        onDelete={() => setBatchDeleteIds(Array.from(selectedIds))}
+      />
 
       <ConfirmActionDialog
         open={!!toDelete}
@@ -236,6 +325,45 @@ export function TasksBoard({
               error instanceof Error
                 ? error.message
                 : 'Não foi possível excluir a tarefa.',
+            )
+            throw error
+          }
+        }}
+      />
+
+      <ConfirmActionDialog
+        open={batchDeleteIds.length > 0}
+        onOpenChange={(open) => {
+          if (!open) setBatchDeleteIds([])
+        }}
+        title={
+          batchDeleteIds.length === 1
+            ? 'Excluir 1 tarefa?'
+            : `Excluir ${batchDeleteIds.length} tarefas?`
+        }
+        description={
+          batchDeleteIds.length === 1
+            ? 'A tarefa selecionada será removida permanentemente. Esta ação não pode ser desfeita.'
+            : `As ${batchDeleteIds.length} tarefas selecionadas serão removidas permanentemente. Esta ação não pode ser desfeita.`
+        }
+        variant="destructive"
+        confirmLabel="Excluir"
+        onConfirm={async () => {
+          const ids = batchDeleteIds
+          if (ids.length === 0) return
+          try {
+            await deleteTasks.mutateAsync(ids)
+            setSelectedIds(new Set())
+            toast.success(
+              ids.length === 1
+                ? 'Tarefa excluída.'
+                : `${ids.length} tarefas excluídas.`,
+            )
+          } catch (error) {
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : 'Não foi possível excluir as tarefas.',
             )
             throw error
           }

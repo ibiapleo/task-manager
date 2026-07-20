@@ -181,6 +181,45 @@ export class TasksService {
     return { id };
   }
 
+  async removeMany(
+    ids: string[],
+    user: AuthenticatedUser,
+  ): Promise<{ deletedIds: string[] }> {
+    const uniqueIds = [...new Set(ids)];
+
+    const found = await this.prisma.task.findMany({
+      where: { id: { in: uniqueIds } },
+      select: { id: true, profileId: true },
+    });
+
+    if (found.length !== uniqueIds.length) {
+      throw new NotFoundException(
+        'One or more tasks were not found.',
+      );
+    }
+
+    if (user.role !== Role.ADMIN) {
+      const forbidden = found.some((task) => task.profileId !== user.id);
+      if (forbidden) {
+        throw new ForbiddenException(
+          'You do not have permission to delete one or more of these tasks.',
+        );
+      }
+    }
+
+    const deletedIds = found.map((task) => task.id);
+
+    const { count } = await this.prisma.task.deleteMany({
+      where: { id: { in: deletedIds } },
+    });
+
+    if (count !== deletedIds.length) {
+      throw new NotFoundException('One or more tasks were not found.');
+    }
+
+    return { deletedIds };
+  }
+
   // Admin-only aggregate view (see TasksController's RolesGuard-protected route).
   async getStatusSummary(): Promise<TaskStatusSummary> {
     const groups = await this.prisma.task.groupBy({

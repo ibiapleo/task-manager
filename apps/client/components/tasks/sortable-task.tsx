@@ -9,6 +9,8 @@ interface SortableTaskProps {
   task: Task
   variant?: 'kanban' | 'list'
   showOwner?: boolean
+  selected?: boolean
+  onSelectedChange?: (selected: boolean) => void
   onDelete?: () => void
   onOpen?: () => void
 }
@@ -17,6 +19,8 @@ export function SortableTask({
   task,
   variant = 'kanban',
   showOwner = false,
+  selected,
+  onSelectedChange,
   onDelete,
   onOpen,
 }: SortableTaskProps) {
@@ -36,6 +40,8 @@ export function SortableTask({
       variant={variant}
       showOwner={showOwner}
       dragging={isDragging}
+      selected={selected}
+      onSelectedChange={onSelectedChange}
       onDelete={onDelete}
       onOpen={onOpen}
       handleProps={{ ...attributes, ...(listeners as object) }}

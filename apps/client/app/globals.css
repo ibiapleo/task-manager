@@ -310,6 +310,40 @@
   display: none;
 }
 
+/* Circular selection checkbox */
+.checkbox-circle {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 9999px;
+  border: 1.5px solid color-mix(in oklch, var(--border) 80%, transparent);
+  background-color: transparent;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+.checkbox-circle:checked,
+.checkbox-circle:indeterminate {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+.checkbox-circle:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5l2.5 2.5 5.5-5.5'/%3E%3C/svg%3E");
+}
+.checkbox-circle:indeterminate {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+}
+.checkbox-circle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

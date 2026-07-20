@@ -51,6 +51,24 @@ export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;
 export const UpdateTaskInputSchema = CreateTaskInputSchema.partial();
 export type UpdateTaskInput = z.infer<typeof UpdateTaskInputSchema>;
 
+export const DeleteTasksBatchInputSchema = z.object({
+  ids: z
+    .array(z.string().uuid())
+    .min(1)
+    .max(100)
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: 'ids must be unique',
+    }),
+});
+export type DeleteTasksBatchInput = z.infer<typeof DeleteTasksBatchInputSchema>;
+
+export const DeleteTasksBatchResponseSchema = z.object({
+  deletedIds: z.array(z.string().uuid()),
+});
+export type DeleteTasksBatchResponse = z.infer<
+  typeof DeleteTasksBatchResponseSchema
+>;
+
 export const TaskFilterInputSchema = z.object({
   scope: z.enum(['personal', 'all']).optional(),
   status: TaskStatusSchema.optional(),

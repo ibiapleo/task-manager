@@ -26,6 +26,13 @@ interface RequestOptions {
   signal?: AbortSignal
 }
 
+function isRequestOptions(value: unknown): value is RequestOptions {
+  if (typeof value !== 'object' || value === null) return false
+  const keys = Object.keys(value)
+  if (keys.length === 0) return false
+  return keys.every((key) => key === 'query' || key === 'signal')
+}
+
 function buildUrl(path: string, query?: RequestOptions['query']): string {
   const url = new URL(path.replace(/^\//, ''), `${API_BASE_URL}/`)
   if (query) {
@@ -99,6 +106,14 @@ export const apiClient = {
     request<T>('POST', path, body, options),
   patch: <T>(path: string, body?: unknown, options?: RequestOptions) =>
     request<T>('PATCH', path, body, options),
-  delete: <T>(path: string, options?: RequestOptions) =>
-    request<T>('DELETE', path, undefined, options),
+  delete: <T>(
+    path: string,
+    bodyOrOptions?: unknown,
+    options?: RequestOptions,
+  ) => {
+    if (options === undefined && isRequestOptions(bodyOrOptions)) {
+      return request<T>('DELETE', path, undefined, bodyOrOptions)
+    }
+    return request<T>('DELETE', path, bodyOrOptions, options)
+  },
 }
