@@ -110,6 +110,7 @@ export const TaskFilterInputSchema = z.object({
   status: TaskStatusSchema.optional(),
   priority: PrioritySchema.optional(),
   search: z.string().max(120).optional(),
+  profileId: z.string().uuid().optional(),
   dueAfter: z.string().min(1).optional(),
   dueBefore: z.string().min(1).optional(),
   unscheduled: z.boolean().optional(),

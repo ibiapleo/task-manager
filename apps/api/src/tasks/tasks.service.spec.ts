@@ -515,6 +515,33 @@ describe('TasksService', () => {
       expect(call.where).not.toHaveProperty('profileId');
     });
 
+    it('filters by profileId for ADMIN when scope=all', async () => {
+      await service.findAll(
+        { scope: 'all', profileId: OTHER_USER_ID },
+        adminUser,
+      );
+
+      expect(prisma.task.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            profileId: OTHER_USER_ID,
+          }),
+        }),
+      );
+    });
+
+    it('ignores profileId for COMMON users on personal scope', async () => {
+      await service.findAll({ profileId: OTHER_USER_ID }, ownerUser);
+
+      expect(prisma.task.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            profileId: OWNER_ID,
+          }),
+        }),
+      );
+    });
+
     it('filters unscheduled tasks when unscheduled=true (ignores dueAfter/dueBefore)', async () => {
       await service.findAll(
         {

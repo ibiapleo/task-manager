@@ -79,6 +79,7 @@ export class TasksService {
       status,
       priority,
       search,
+      profileId,
       dueAfter,
       dueBefore,
       unscheduled,
@@ -101,8 +102,12 @@ export class TasksService {
     );
 
     const where: Prisma.TaskWhereInput = {
-      // personal (default): only the caller's tasks. all: every task (ADMIN).
       ...(scope === 'all' ? {} : { profileId: user.id }),
+      ...(scope === 'all' &&
+      user.role === Role.ADMIN &&
+      profileId
+        ? { profileId }
+        : {}),
       ...(status ? { status } : {}),
       ...(priority ? { priority } : {}),
       ...(search
