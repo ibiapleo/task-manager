@@ -1,0 +1,104 @@
+import { supabase } from './supabase-client'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+
+export class ApiError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+type UnauthorizedHandler = () => void
+
+let unauthorizedHandler: UnauthorizedHandler | null = null
+
+/** Registered once by AuthProvider so a 401 from any request can sign the user out. */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  unauthorizedHandler = handler
+}
+
+interface RequestOptions {
+  query?: Record<string, string | number | boolean | undefined | null>
+  signal?: AbortSignal
+}
+
+function buildUrl(path: string, query?: RequestOptions['query']): string {
+  const url = new URL(path.replace(/^\//, ''), `${API_BASE_URL}/`)
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, String(value))
+      }
+    }
+  }
+  return url.toString()
+}
+
+async function authHeader(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+interface NestErrorBody {
+  message?: string | string[]
+  error?: string
+}
+
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  options?: RequestOptions,
+): Promise<T> {
+  const response = await fetch(buildUrl(path, options?.query), {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(await authHeader()),
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal: options?.signal,
+  })
+
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  const payload: NestErrorBody | T | null = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    const errorBody = payload as NestErrorBody | null
+    const message = Array.isArray(errorBody?.message)
+      ? errorBody.message.join(', ')
+      : errorBody?.message ?? response.statusText ?? 'Unexpected error'
+
+    if (response.status === 401) {
+      unauthorizedHandler?.()
+    }
+
+    throw new ApiError(response.status, message)
+  }
+
+  return payload as T
+}
+
+/**
+ * Thin, typed Fetch API wrapper shared by every hook in the app. Centralizes
+ * auth header injection and NestJS error-body parsing so hooks/components
+ * never touch `fetch` directly.
+ */
+export const apiClient = {
+  get: <T>(path: string, options?: RequestOptions) =>
+    request<T>('GET', path, undefined, options),
+  post: <T>(path: string, body?: unknown, options?: RequestOptions) =>
+    request<T>('POST', path, body, options),
+  patch: <T>(path: string, body?: unknown, options?: RequestOptions) =>
+    request<T>('PATCH', path, body, options),
+  delete: <T>(path: string, options?: RequestOptions) =>
+    request<T>('DELETE', path, undefined, options),
+}
