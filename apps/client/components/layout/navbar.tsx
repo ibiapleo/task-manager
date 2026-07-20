@@ -103,7 +103,11 @@ export function Navbar() {
             {isLoggingOut ? 'Saindo...' : 'Sair'}
           </button>
           <IconTooltip label="Ajustes">
-            <Link href="/settings" aria-label="Ajustes" className="ml-1">
+            <Link
+              href="/settings"
+              aria-label="Ajustes do perfil"
+              className="ml-1"
+            >
               <UserAvatar profile={profile} size="sm" />
             </Link>
           </IconTooltip>
@@ -147,7 +151,7 @@ export function Navbar() {
               <IconTooltip label="Fechar">
                 <button
                   type="button"
-                  aria-label="Fechar"
+                  aria-label="Fechar menu"
                   onClick={() => setOpen(false)}
                   className="inline-flex size-9 items-center justify-center rounded-full border border-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >

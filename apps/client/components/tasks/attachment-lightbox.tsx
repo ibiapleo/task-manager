@@ -167,7 +167,7 @@ export function AttachmentLightbox({
               download={current.name}
               target="_blank"
               rel="noreferrer"
-              aria-label="Baixar"
+              aria-label={`Baixar ${current.name}`}
               className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Download className="size-4" />

@@ -252,17 +252,17 @@ export function TasksBoard({
       {tasks.length > 0 && (
         <div className="mb-3 flex items-center gap-2 px-1">
           <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
-            <IconTooltip label="Selecionar todos">
+            <IconTooltip label="Selecionar visíveis">
               <input
                 ref={selectAllRef}
                 type="checkbox"
                 checked={allVisibleSelected}
                 onChange={(e) => handleSelectAllVisible(e.target.checked)}
-                aria-label="Selecionar todos"
+                aria-label="Selecionar todas as tarefas visíveis"
                 className="checkbox-circle"
               />
             </IconTooltip>
-            Selecionar todos
+            Selecionar visíveis
           </label>
         </div>
       )}

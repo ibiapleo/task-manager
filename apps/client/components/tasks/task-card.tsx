@@ -125,7 +125,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   <input
                     type="checkbox"
                     checked={selected}
-                    aria-label="Selecionar"
+                    aria-label={`Selecionar tarefa ${task.title}`}
                     onChange={(e) => onSelectedChange(e.target.checked)}
                     className="checkbox-circle"
                   />
@@ -136,7 +136,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
               <IconTooltip label="Arrastar">
                 <button
                   type="button"
-                  aria-label="Arrastar"
+                  aria-label={`Arrastar tarefa ${task.title}`}
                   onClick={(e) => e.stopPropagation()}
                   className="flex size-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-xl text-muted-foreground transition hover:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
                   {...handleProps}
@@ -158,7 +158,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 <IconTooltip label="Concluir">
                   <button
                     type="button"
-                    aria-label="Concluir"
+                    aria-label={`Concluir tarefa ${task.title}`}
                     disabled={isUpdatingThis}
                     onClick={handleComplete}
                     className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-success/15 hover:text-success focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:active:scale-100"
@@ -176,7 +176,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 <IconTooltip label="Editar">
                   <button
                     type="button"
-                    aria-label="Editar"
+                    aria-label={`Abrir detalhes de ${task.title}`}
                     onClick={(e) => {
                       e.stopPropagation()
                       onOpen()
@@ -191,7 +191,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 <IconTooltip label="Duplicar">
                   <button
                     type="button"
-                    aria-label="Duplicar"
+                    aria-label={`Duplicar tarefa ${task.title}`}
                     onClick={(e) => {
                       e.stopPropagation()
                       onDuplicate()
@@ -206,7 +206,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                 <IconTooltip label="Excluir">
                   <button
                     type="button"
-                    aria-label="Excluir"
+                    aria-label={`Excluir tarefa ${task.title}`}
                     onClick={(e) => {
                       e.stopPropagation()
                       onDelete()

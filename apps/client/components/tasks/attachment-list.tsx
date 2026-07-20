@@ -119,7 +119,7 @@ function GalleryTile({
       <IconTooltip label="Remover">
         <button
           type="button"
-          aria-label="Remover"
+          aria-label={`Remover ${item.name}`}
           onClick={(e) => {
             e.stopPropagation()
             onRequestRemove()
@@ -242,7 +242,7 @@ export function AttachmentList({
             <IconTooltip label="Remover">
               <button
                 type="button"
-                aria-label="Remover"
+                aria-label={`Remover ${fileNameFromUrl(url)}`}
                 onClick={() =>
                   setToRemove({
                     id: `remote-${url}`,
@@ -275,7 +275,7 @@ export function AttachmentList({
               <IconTooltip label="Remover">
                 <button
                   type="button"
-                  aria-label="Remover"
+                  aria-label={`Remover ${item.file.name}`}
                   onClick={() =>
                     setToRemove({
                       id: `pending-${item.previewUrl}`,
