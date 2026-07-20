@@ -57,7 +57,7 @@ const adminUser: AuthenticatedUser = buildAuthenticatedUser({
 
 function buildTask(overrides: Partial<Task> = {}): Task & {
   attachments: Attachment[];
-  profile: { id: string; name: string | null; email: string };
+  profile: { id: string; name: string | null; avatarUrl: string | null };
 } {
   const profileId = overrides.profileId ?? OWNER_ID;
   return {
@@ -74,12 +74,7 @@ function buildTask(overrides: Partial<Task> = {}): Task & {
     profile: {
       id: profileId,
       name: null,
-      email:
-        profileId === OWNER_ID
-          ? 'owner@example.com'
-          : profileId === ADMIN_ID
-            ? 'admin@example.com'
-            : 'other@example.com',
+      avatarUrl: null,
     },
     ...overrides,
   };

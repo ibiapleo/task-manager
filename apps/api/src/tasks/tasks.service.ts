@@ -16,14 +16,18 @@ import { resolveFileType } from './utils/resolve-file-type.util';
 
 const TASK_INCLUDE = {
   attachments: true,
-  profile: { select: { id: true, name: true, email: true } },
+  profile: { select: { id: true, name: true, avatarUrl: true } },
 } satisfies Prisma.TaskInclude;
 
-type TaskOwnerProfile = { id: string; name: string | null; email: string };
+type TaskUserProfile = {
+  id: string;
+  name: string | null;
+  avatarUrl: string | null;
+};
 
 type TaskWithRelations = Task & {
   attachments: Attachment[];
-  profile: TaskOwnerProfile;
+  profile: TaskUserProfile;
 };
 
 @Injectable()
@@ -296,10 +300,10 @@ export class TasksService {
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       profileId: task.profileId,
-      owner: {
+      user: {
         id: task.profile.id,
         name: task.profile.name,
-        email: task.profile.email,
+        avatarUrl: task.profile.avatarUrl,
       },
       attachments: task.attachments.map((attachment) => ({
         id: attachment.id,

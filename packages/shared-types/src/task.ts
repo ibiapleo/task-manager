@@ -9,12 +9,12 @@ export const AttachmentResponseSchema = z.object({
 });
 export type AttachmentResponse = z.infer<typeof AttachmentResponseSchema>;
 
-export const TaskOwnerResponseSchema = z.object({
+export const TaskUserResponseSchema = z.object({
   id: z.string().uuid(),
   name: z.string().nullable(),
-  email: z.string().email(),
+  avatarUrl: z.string().nullable(),
 });
-export type TaskOwnerResponse = z.infer<typeof TaskOwnerResponseSchema>;
+export type TaskUserResponse = z.infer<typeof TaskUserResponseSchema>;
 
 export const TaskResponseSchema = z.object({
   id: z.string().uuid(),
@@ -26,7 +26,7 @@ export const TaskResponseSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   profileId: z.string().uuid(),
-  owner: TaskOwnerResponseSchema,
+  user: TaskUserResponseSchema,
   attachments: z.array(AttachmentResponseSchema),
 });
 export type TaskResponse = z.infer<typeof TaskResponseSchema>;

@@ -20,6 +20,7 @@ import {
 } from '@/components/tasks/task-quick-edit-popover'
 import { useFormattedDate } from '@/hooks/use-formatted-date'
 import { useUpdateTask } from '@/hooks/use-tasks'
+import { UserAvatar } from '@/components/user-avatar'
 import type { Task } from '@/lib/types'
 import { PRIORITY_META, STATUS_META } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -66,8 +67,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
     const description = task.description
       ? truncateDescription(task.description)
       : null
-    const ownerLabel =
-      task.owner?.name?.trim() || task.owner?.email || null
+    const ownerName = task.user?.name?.trim() || 'Sem nome'
 
     async function handleComplete(e: React.MouseEvent) {
       e.stopPropagation()
@@ -178,10 +178,21 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             </p>
           )}
 
-          {showOwner && ownerLabel && (
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Responsável: {ownerLabel}
-            </p>
+          {showOwner && task.user && (
+            <span
+              aria-label={`Responsável: ${ownerName}`}
+              className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full border border-border/60 bg-card/50 py-1 pr-3 pl-1 text-xs font-medium text-foreground"
+            >
+              <UserAvatar
+                profile={{
+                  name: task.user.name,
+                  avatarUrl: task.user.avatarUrl,
+                }}
+                size="sm"
+                className="size-6 text-[10px]"
+              />
+              <span className="truncate">{ownerName}</span>
+            </span>
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">

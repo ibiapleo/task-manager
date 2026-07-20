@@ -9,10 +9,10 @@ export interface AttachmentResponse {
   createdAt: Date;
 }
 
-export interface TaskOwnerResponse {
+export interface TaskUserResponse {
   id: string;
   name: string | null;
-  email: string;
+  avatarUrl: string | null;
 }
 
 export interface TaskResponse {
@@ -25,6 +25,6 @@ export interface TaskResponse {
   createdAt: Date;
   updatedAt: Date;
   profileId: string;
-  owner: TaskOwnerResponse;
+  user: TaskUserResponse;
   attachments: AttachmentResponse[];
 }

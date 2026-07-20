@@ -22,6 +22,7 @@ import { STORAGE_BUCKETS, uploadFiles } from '@/lib/storage'
 import type { Priority, TaskStatus } from '@/lib/types'
 import { STATUS_META } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { UserAvatar } from '@/components/user-avatar'
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: 'PENDING', label: 'Pendente' },
@@ -60,9 +61,11 @@ function toFormValues(task: TaskResponse): UpdateTaskInput {
 export function TaskDetailsModal({
   task,
   onOpenChange,
+  showOwner = false,
 }: {
   task: TaskResponse | null
   onOpenChange: (open: boolean) => void
+  showOwner?: boolean
 }) {
   const { data: profile } = useProfile()
   const updateTask = useUpdateTask()
@@ -234,6 +237,24 @@ export function TaskDetailsModal({
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-card/40 px-3 py-1 text-xs text-muted-foreground">
                 <CalendarDays className="size-3.5" />
                 {dueLabel}
+              </span>
+            )}
+            {showOwner && activeTask.user && (
+              <span
+                className="inline-flex max-w-full items-center gap-2 rounded-full border border-border/50 bg-card/40 py-1 pr-3 pl-1 text-xs font-medium text-foreground"
+                aria-label={`Responsável: ${activeTask.user.name?.trim() || 'Sem nome'}`}
+              >
+                <UserAvatar
+                  profile={{
+                    name: activeTask.user.name,
+                    avatarUrl: activeTask.user.avatarUrl,
+                  }}
+                  size="sm"
+                  className="size-6 text-[10px]"
+                />
+                <span className="truncate">
+                  {activeTask.user.name?.trim() || 'Sem nome'}
+                </span>
               </span>
             )}
           </section>
