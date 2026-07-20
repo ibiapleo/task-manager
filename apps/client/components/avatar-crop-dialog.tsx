@@ -6,6 +6,7 @@ import Cropper, { type Area } from 'react-easy-crop'
 import { ImagePlus, Loader2, RotateCcw, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { GlassCard } from '@/components/ui/glass'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { getCroppedImageBlob } from '@/lib/crop-image'
 import { cn } from '@/lib/utils'
 
@@ -148,15 +149,17 @@ export function AvatarCropDialog({
           <h2 id="avatar-crop-title" className="text-lg font-semibold tracking-tight">
             {step === 'drop' ? 'Novo avatar' : 'Ajustar recorte'}
           </h2>
-          <button
-            type="button"
-            aria-label="Fechar"
-            disabled={isProcessing}
-            onClick={closeDialog}
-            className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:active:scale-100"
-          >
-            <X className="size-4" />
-          </button>
+          <IconTooltip label="Fechar">
+            <button
+              type="button"
+              aria-label="Fechar"
+              disabled={isProcessing}
+              onClick={closeDialog}
+              className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:active:scale-100"
+            >
+              <X className="size-4" />
+            </button>
+          </IconTooltip>
         </div>
 
         {step === 'drop' && (

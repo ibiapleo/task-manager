@@ -15,6 +15,7 @@ import { useCreateTask } from '@/hooks/use-tasks'
 import { useProfile } from '@/hooks/use-profile'
 import { usePendingAttachments } from '@/hooks/use-pending-attachments'
 import { GlassCard } from '@/components/ui/glass'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { PillSelect } from '@/components/ui/pill-select'
 import { STORAGE_BUCKETS, uploadFiles } from '@/lib/storage'
 import type { Priority, TaskStatus } from '@/lib/types'
@@ -155,14 +156,16 @@ export function AddTaskDialog({
           >
             Nova tarefa
           </h2>
-          <button
-            type="button"
-            aria-label="Fechar"
-            onClick={closeDialog}
-            className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <X className="size-4" />
-          </button>
+          <IconTooltip label="Fechar">
+            <button
+              type="button"
+              aria-label="Fechar"
+              onClick={closeDialog}
+              className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="size-4" />
+            </button>
+          </IconTooltip>
         </div>
 
         <form

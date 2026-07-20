@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { AttachmentPreviewKind } from '@/lib/attachment'
 import { GlassCard } from '@/components/ui/glass'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { cn } from '@/lib/utils'
 
 export interface LightboxAttachment {
@@ -120,28 +121,36 @@ export function AttachmentLightbox({
           </h2>
           {current.kind === 'image' && (
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                aria-label="Diminuir zoom"
-                disabled={zoom <= MIN_ZOOM}
-                onClick={() =>
-                  setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)))
-                }
-                className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 disabled:active:scale-100"
-              >
-                <ZoomOut className="size-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="Aumentar zoom"
-                disabled={zoom >= MAX_ZOOM}
-                onClick={() =>
-                  setZoom((z) => Math.min(MAX_ZOOM, +(z + ZOOM_STEP).toFixed(2)))
-                }
-                className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 disabled:active:scale-100"
-              >
-                <ZoomIn className="size-4" />
-              </button>
+              <IconTooltip label="Diminuir zoom">
+                <button
+                  type="button"
+                  aria-label="Diminuir zoom"
+                  disabled={zoom <= MIN_ZOOM}
+                  onClick={() =>
+                    setZoom((z) =>
+                      Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)),
+                    )
+                  }
+                  className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 disabled:active:scale-100"
+                >
+                  <ZoomOut className="size-4" />
+                </button>
+              </IconTooltip>
+              <IconTooltip label="Aumentar zoom">
+                <button
+                  type="button"
+                  aria-label="Aumentar zoom"
+                  disabled={zoom >= MAX_ZOOM}
+                  onClick={() =>
+                    setZoom((z) =>
+                      Math.min(MAX_ZOOM, +(z + ZOOM_STEP).toFixed(2)),
+                    )
+                  }
+                  className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 disabled:active:scale-100"
+                >
+                  <ZoomIn className="size-4" />
+                </button>
+              </IconTooltip>
               <button
                 type="button"
                 aria-label="Resetar zoom"
@@ -152,45 +161,53 @@ export function AttachmentLightbox({
               </button>
             </div>
           )}
-          <a
-            href={current.url}
-            download={current.name}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={`Baixar ${current.name}`}
-            className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Download className="size-4" />
-          </a>
-          <button
-            type="button"
-            aria-label="Fechar visualizador"
-            onClick={close}
-            className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <X className="size-4" />
-          </button>
+          <IconTooltip label="Baixar">
+            <a
+              href={current.url}
+              download={current.name}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Baixar ${current.name}`}
+              className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Download className="size-4" />
+            </a>
+          </IconTooltip>
+          <IconTooltip label="Fechar">
+            <button
+              type="button"
+              aria-label="Fechar"
+              onClick={close}
+              className="inline-flex size-8 items-center justify-center rounded-full border border-border/60 transition active:scale-95 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="size-4" />
+            </button>
+          </IconTooltip>
         </header>
 
         <div className="relative min-h-0 flex-1">
           {hasNav && (
             <>
-              <button
-                type="button"
-                aria-label="Anexo anterior"
-                onClick={goPrev}
-                className="absolute left-2 top-1/2 z-10 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-card/80 backdrop-blur transition active:scale-95 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <ChevronLeft className="size-5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Próximo anexo"
-                onClick={goNext}
-                className="absolute right-2 top-1/2 z-10 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-card/80 backdrop-blur transition active:scale-95 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <ChevronRight className="size-5" />
-              </button>
+              <IconTooltip label="Anterior" side="right">
+                <button
+                  type="button"
+                  aria-label="Anterior"
+                  onClick={goPrev}
+                  className="absolute left-2 top-1/2 z-10 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-card/80 backdrop-blur transition active:scale-95 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ChevronLeft className="size-5" />
+                </button>
+              </IconTooltip>
+              <IconTooltip label="Próximo" side="left">
+                <button
+                  type="button"
+                  aria-label="Próximo"
+                  onClick={goNext}
+                  className="absolute right-2 top-1/2 z-10 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-card/80 backdrop-blur transition active:scale-95 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ChevronRight className="size-5" />
+                </button>
+              </IconTooltip>
             </>
           )}
 

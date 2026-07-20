@@ -31,6 +31,7 @@ import { KanbanColumn } from '@/components/tasks/kanban-column'
 import { TaskCard } from '@/components/tasks/task-card'
 import { TaskDetailsModal } from '@/components/tasks/task-details-modal'
 import { TaskPagination } from '@/components/tasks/task-pagination'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import type { Priority, Task, TaskStatus } from '@/lib/types'
 
 const STATUSES: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED']
@@ -251,15 +252,17 @@ export function TasksBoard({
       {tasks.length > 0 && (
         <div className="mb-3 flex items-center gap-2 px-1">
           <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
-            <input
-              ref={selectAllRef}
-              type="checkbox"
-              checked={allVisibleSelected}
-              onChange={(e) => handleSelectAllVisible(e.target.checked)}
-              aria-label="Selecionar todas as tarefas visíveis"
-              className="checkbox-circle"
-            />
-            Selecionar todos
+            <IconTooltip label="Selecionar visíveis">
+              <input
+                ref={selectAllRef}
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={(e) => handleSelectAllVisible(e.target.checked)}
+                aria-label="Selecionar todas as tarefas visíveis"
+                className="checkbox-circle"
+              />
+            </IconTooltip>
+            Selecionar visíveis
           </label>
         </div>
       )}

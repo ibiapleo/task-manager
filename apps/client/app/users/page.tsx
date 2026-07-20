@@ -8,6 +8,7 @@ import { AdminOnly } from '@/components/admin-only'
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import { UserAvatar } from '@/components/user-avatar'
 import { GlassCard } from '@/components/ui/glass'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { PillSelect } from '@/components/ui/pill-select'
 import { useUpdateUserRole, useUsersQuery } from '@/hooks/use-users'
 import { ROLE_META } from '@/lib/types'
@@ -112,29 +113,33 @@ export default function UsersPage() {
 
             {meta && meta.totalPages > 1 && (
               <div className="flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="inline-flex size-9 items-center justify-center rounded-full border border-border/60 transition active:scale-90 disabled:opacity-40 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="Página anterior"
-                >
-                  <ChevronLeft className="size-4" />
-                </button>
+                <IconTooltip label="Página anterior">
+                  <button
+                    type="button"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="inline-flex size-9 items-center justify-center rounded-full border border-border/60 transition active:scale-90 disabled:opacity-40 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Página anterior"
+                  >
+                    <ChevronLeft className="size-4" />
+                  </button>
+                </IconTooltip>
                 <span className="text-sm text-muted-foreground">
                   Página {meta.page} de {meta.totalPages}
                 </span>
-                <button
-                  type="button"
-                  disabled={page >= meta.totalPages}
-                  onClick={() =>
-                    setPage((p) => Math.min(meta.totalPages, p + 1))
-                  }
-                  className="inline-flex size-9 items-center justify-center rounded-full border border-border/60 transition active:scale-90 disabled:opacity-40 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="Próxima página"
-                >
-                  <ChevronRight className="size-4" />
-                </button>
+                <IconTooltip label="Próxima página">
+                  <button
+                    type="button"
+                    disabled={page >= meta.totalPages}
+                    onClick={() =>
+                      setPage((p) => Math.min(meta.totalPages, p + 1))
+                    }
+                    className="inline-flex size-9 items-center justify-center rounded-full border border-border/60 transition active:scale-90 disabled:opacity-40 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Próxima página"
+                  >
+                    <ChevronRight className="size-4" />
+                  </button>
+                </IconTooltip>
               </div>
             )}
           </>

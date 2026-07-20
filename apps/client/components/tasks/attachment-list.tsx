@@ -14,6 +14,7 @@ import {
   resolvePreviewKind,
   type AttachmentPreviewKind,
 } from '@/lib/attachment'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { cn } from '@/lib/utils'
 
 interface AttachmentItem extends LightboxAttachment {
@@ -115,21 +116,23 @@ function GalleryTile({
           {item.name}
         </span>
       </button>
-      <button
-        type="button"
-        aria-label={`Remover ${item.name}`}
-        onClick={(e) => {
-          e.stopPropagation()
-          onRequestRemove()
-        }}
-        className={cn(
-          'absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground opacity-0 shadow transition',
-          'hover:bg-destructive/15 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive',
-          'group-hover/tile:opacity-100 group-focus-within/tile:opacity-100',
-        )}
-      >
-        <X className="size-3.5" />
-      </button>
+      <IconTooltip label="Remover">
+        <button
+          type="button"
+          aria-label={`Remover ${item.name}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            onRequestRemove()
+          }}
+          className={cn(
+            'absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground opacity-0 shadow transition',
+            'hover:bg-destructive/15 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive',
+            'group-hover/tile:opacity-100 group-focus-within/tile:opacity-100',
+          )}
+        >
+          <X className="size-3.5" />
+        </button>
+      </IconTooltip>
     </li>
   )
 }
@@ -236,21 +239,23 @@ export function AttachmentList({
             >
               {fileNameFromUrl(url)}
             </a>
-            <button
-              type="button"
-              aria-label={`Remover ${fileNameFromUrl(url)}`}
-              onClick={() =>
-                setToRemove({
-                  id: `remote-${url}`,
-                  url,
-                  name: fileNameFromUrl(url),
-                  kind: resolvePreviewKind(undefined, url),
-                })
-              }
-              className="shrink-0 rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-            >
-              <X className="size-3.5" />
-            </button>
+            <IconTooltip label="Remover">
+              <button
+                type="button"
+                aria-label={`Remover ${fileNameFromUrl(url)}`}
+                onClick={() =>
+                  setToRemove({
+                    id: `remote-${url}`,
+                    url,
+                    name: fileNameFromUrl(url),
+                    kind: resolvePreviewKind(undefined, url),
+                  })
+                }
+                className="shrink-0 rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+              >
+                <X className="size-3.5" />
+              </button>
+            </IconTooltip>
           </li>
         ))}
         {pending.map((item, index) => (
@@ -267,22 +272,24 @@ export function AttachmentList({
               Novo
             </span>
             {onRemovePending && (
-              <button
-                type="button"
-                aria-label={`Remover ${item.file.name}`}
-                onClick={() =>
-                  setToRemove({
-                    id: `pending-${item.previewUrl}`,
-                    url: item.previewUrl,
-                    name: item.file.name,
-                    kind: resolvePreviewKind(item.file.type, item.file.name),
-                    pendingIndex: index,
-                  })
-                }
-                className="shrink-0 rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-              >
-                <X className="size-3.5" />
-              </button>
+              <IconTooltip label="Remover">
+                <button
+                  type="button"
+                  aria-label={`Remover ${item.file.name}`}
+                  onClick={() =>
+                    setToRemove({
+                      id: `pending-${item.previewUrl}`,
+                      url: item.previewUrl,
+                      name: item.file.name,
+                      kind: resolvePreviewKind(item.file.type, item.file.name),
+                      pendingIndex: index,
+                    })
+                  }
+                  className="shrink-0 rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </IconTooltip>
             )}
           </li>
         ))}

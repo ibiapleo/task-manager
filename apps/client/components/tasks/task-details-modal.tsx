@@ -17,6 +17,7 @@ import { useProfile } from '@/hooks/use-profile'
 import { usePendingAttachments } from '@/hooks/use-pending-attachments'
 import { useFormattedDate } from '@/hooks/use-formatted-date'
 import { GlassCard } from '@/components/ui/glass'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { PillSelect } from '@/components/ui/pill-select'
 import { STORAGE_BUCKETS, uploadFiles } from '@/lib/storage'
 import type { Priority, TaskStatus } from '@/lib/types'
@@ -210,15 +211,17 @@ export function TaskDetailsModal({
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Detalhes da tarefa
           </p>
-          <button
-            type="button"
-            aria-label="Fechar"
-            disabled={busy}
-            onClick={closeDialog}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-border/60 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:active:scale-100"
-          >
-            <X className="size-4" />
-          </button>
+          <IconTooltip label="Fechar">
+            <button
+              type="button"
+              aria-label="Fechar"
+              disabled={busy}
+              onClick={closeDialog}
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-border/60 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:active:scale-100"
+            >
+              <X className="size-4" />
+            </button>
+          </IconTooltip>
         </div>
 
         <form

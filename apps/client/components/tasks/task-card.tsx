@@ -21,6 +21,7 @@ import {
 } from '@/components/tasks/task-quick-edit-popover'
 import { useFormattedDate } from '@/hooks/use-formatted-date'
 import { useUpdateTask } from '@/hooks/use-tasks'
+import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { UserAvatar } from '@/components/user-avatar'
 import type { Task } from '@/lib/types'
 import { PRIORITY_META, STATUS_META } from '@/lib/types'
@@ -116,29 +117,33 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             )}
           >
             {onSelectedChange && (
-              <label
-                className="flex size-8 items-center justify-center"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <input
-                  type="checkbox"
-                  checked={selected}
-                  aria-label={`Selecionar tarefa ${task.title}`}
-                  onChange={(e) => onSelectedChange(e.target.checked)}
-                  className="checkbox-circle"
-                />
-              </label>
+              <IconTooltip label="Selecionar">
+                <label
+                  className="flex size-8 items-center justify-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    aria-label={`Selecionar tarefa ${task.title}`}
+                    onChange={(e) => onSelectedChange(e.target.checked)}
+                    className="checkbox-circle"
+                  />
+                </label>
+              </IconTooltip>
             )}
             {handleProps && (
-              <button
-                type="button"
-                aria-label="Arrastar tarefa"
-                onClick={(e) => e.stopPropagation()}
-                className="flex size-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-xl text-muted-foreground transition hover:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
-                {...handleProps}
-              >
-                <GripVertical className="size-4" />
-              </button>
+              <IconTooltip label="Arrastar">
+                <button
+                  type="button"
+                  aria-label={`Arrastar tarefa ${task.title}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex size-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-xl text-muted-foreground transition hover:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+                  {...handleProps}
+                >
+                  <GripVertical className="size-4" />
+                </button>
+              </IconTooltip>
             )}
           </div>
         )}
@@ -150,59 +155,67 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
             </h3>
             <div className="flex shrink-0 items-center gap-1 opacity-0 transition focus-within:opacity-100 group-hover/card:opacity-100">
               {task.status !== 'COMPLETED' && (
-                <button
-                  type="button"
-                  aria-label={`Concluir tarefa ${task.title}`}
-                  disabled={isUpdatingThis}
-                  onClick={handleComplete}
-                  className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-success/15 hover:text-success focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:active:scale-100"
-                >
-                  {isUpdatingThis &&
-                  updateTask.variables?.patch.status === 'COMPLETED' ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Check className="size-4" />
-                  )}
-                </button>
+                <IconTooltip label="Concluir">
+                  <button
+                    type="button"
+                    aria-label={`Concluir tarefa ${task.title}`}
+                    disabled={isUpdatingThis}
+                    onClick={handleComplete}
+                    className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-success/15 hover:text-success focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:active:scale-100"
+                  >
+                    {isUpdatingThis &&
+                    updateTask.variables?.patch.status === 'COMPLETED' ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Check className="size-4" />
+                    )}
+                  </button>
+                </IconTooltip>
               )}
               {onOpen && (
-                <button
-                  type="button"
-                  aria-label={`Abrir detalhes de ${task.title}`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onOpen()
-                  }}
-                  className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-accent/15 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Pencil className="size-4" />
-                </button>
+                <IconTooltip label="Editar">
+                  <button
+                    type="button"
+                    aria-label={`Abrir detalhes de ${task.title}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onOpen()
+                    }}
+                    className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-accent/15 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Pencil className="size-4" />
+                  </button>
+                </IconTooltip>
               )}
               {onDuplicate && (
-                <button
-                  type="button"
-                  aria-label={`Duplicar tarefa ${task.title}`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDuplicate()
-                  }}
-                  className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-card/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Copy className="size-4" />
-                </button>
+                <IconTooltip label="Duplicar">
+                  <button
+                    type="button"
+                    aria-label={`Duplicar tarefa ${task.title}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDuplicate()
+                    }}
+                    className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-card/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Copy className="size-4" />
+                  </button>
+                </IconTooltip>
               )}
               {onDelete && (
-                <button
-                  type="button"
-                  aria-label={`Excluir tarefa ${task.title}`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDelete()
-                  }}
-                  className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-                >
-                  <Trash2 className="size-4" />
-                </button>
+                <IconTooltip label="Excluir">
+                  <button
+                    type="button"
+                    aria-label={`Excluir tarefa ${task.title}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDelete()
+                    }}
+                    className="rounded-lg p-1.5 text-muted-foreground transition active:scale-90 hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </IconTooltip>
               )}
             </div>
           </div>
