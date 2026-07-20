@@ -11,13 +11,17 @@ import { apiClient } from '@/lib/api-client'
 import { queryKeys } from '@/lib/query-keys'
 
 /** Admin-only, paginated user list (see UsersController.findAll). */
-export function useUsersQuery(filters: UserFilterInput = {}) {
+export function useUsersQuery(
+  filters: UserFilterInput = {},
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: queryKeys.users.list(filters),
     queryFn: () =>
       apiClient.get<PaginatedResult<ProfileResponse>>('/users', {
         query: filters,
       }),
+    enabled: options?.enabled ?? true,
   })
 }
 

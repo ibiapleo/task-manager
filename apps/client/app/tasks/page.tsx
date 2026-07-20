@@ -87,6 +87,7 @@ function TasksPageContent() {
       status: undefined,
       priority: undefined,
       q: '',
+      userId: undefined,
       due: 'all',
       page: 1,
     })
@@ -210,6 +211,7 @@ function TasksPageContent() {
           state={state}
           onChange={patchState}
           onClear={clearFilters}
+          showUserFilter={isAdmin && state.scope === 'all'}
         />
         <div className="flex justify-end">
           <TaskSortBar
