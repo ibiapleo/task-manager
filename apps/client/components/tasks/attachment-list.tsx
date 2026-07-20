@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { FileText, Paperclip, X } from 'lucide-react'
+import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import {
   AttachmentKindIcon,
   AttachmentLightbox,
@@ -70,11 +71,11 @@ function CompactThumb({
 function GalleryTile({
   item,
   onOpen,
-  onRemove,
+  onRequestRemove,
 }: {
   item: AttachmentItem
   onOpen: () => void
-  onRemove: () => void
+  onRequestRemove: () => void
 }) {
   const isPending = item.pendingIndex !== undefined
 
@@ -119,7 +120,7 @@ function GalleryTile({
         aria-label={`Remover ${item.name}`}
         onClick={(e) => {
           e.stopPropagation()
-          onRemove()
+          onRequestRemove()
         }}
         className={cn(
           'absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground opacity-0 shadow transition',
@@ -152,6 +153,7 @@ export function AttachmentList({
   const items = useMemo(() => buildItems(urls, pending), [urls, pending])
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [toRemove, setToRemove] = useState<AttachmentItem | null>(null)
 
   if (items.length === 0) return null
 
@@ -160,13 +162,34 @@ export function AttachmentList({
     setLightboxOpen(true)
   }
 
-  function removeItem(item: AttachmentItem) {
+  function applyRemoval(item: AttachmentItem) {
     if (item.pendingIndex !== undefined) {
       onRemovePending?.(item.pendingIndex)
       return
     }
     onRemove(item.url)
   }
+
+  const confirmDialog = (
+    <ConfirmActionDialog
+      open={!!toRemove}
+      onOpenChange={(open) => {
+        if (!open) setToRemove(null)
+      }}
+      title="Remover anexo?"
+      description={
+        toRemove
+          ? `O arquivo "${toRemove.name}" será removido da lista de anexos desta tarefa.`
+          : undefined
+      }
+      variant="destructive"
+      confirmLabel="Remover"
+      onConfirm={async () => {
+        if (!toRemove) return
+        applyRemoval(toRemove)
+      }}
+    />
+  )
 
   if (variant === 'gallery') {
     return (
@@ -177,7 +200,7 @@ export function AttachmentList({
               key={item.id}
               item={item}
               onOpen={() => openAt(index)}
-              onRemove={() => removeItem(item)}
+              onRequestRemove={() => setToRemove(item)}
             />
           ))}
         </ul>
@@ -188,64 +211,83 @@ export function AttachmentList({
           onOpenChange={setLightboxOpen}
           onIndexChange={setLightboxIndex}
         />
+        {confirmDialog}
       </>
     )
   }
 
   return (
-    <ul className="flex flex-col gap-1.5">
-      {urls.map((url) => (
-        <li
-          key={url}
-          className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-sm"
-        >
-          <CompactThumb
-            previewKind={resolvePreviewKind(undefined, url)}
-            src={url}
-          />
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="min-w-0 flex-1 truncate underline-offset-2 hover:underline"
+    <>
+      <ul className="flex flex-col gap-1.5">
+        {urls.map((url) => (
+          <li
+            key={url}
+            className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-sm"
           >
-            {fileNameFromUrl(url)}
-          </a>
-          <button
-            type="button"
-            aria-label="Remover anexo"
-            onClick={() => onRemove(url)}
-            className="shrink-0 rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-          >
-            <X className="size-3.5" />
-          </button>
-        </li>
-      ))}
-      {pending.map((item, index) => (
-        <li
-          key={item.previewUrl}
-          className="flex items-center gap-3 rounded-xl border border-dashed border-border/60 bg-card/25 px-3 py-2 text-sm"
-        >
-          <CompactThumb
-            previewKind={resolvePreviewKind(item.file.type, item.file.name)}
-            src={item.previewUrl}
-          />
-          <span className="min-w-0 flex-1 truncate">{item.file.name}</span>
-          <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent">
-            Novo
-          </span>
-          {onRemovePending && (
+            <CompactThumb
+              previewKind={resolvePreviewKind(undefined, url)}
+              src={url}
+            />
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="min-w-0 flex-1 truncate underline-offset-2 hover:underline"
+            >
+              {fileNameFromUrl(url)}
+            </a>
             <button
               type="button"
-              aria-label="Remover anexo pendente"
-              onClick={() => onRemovePending(index)}
+              aria-label={`Remover ${fileNameFromUrl(url)}`}
+              onClick={() =>
+                setToRemove({
+                  id: `remote-${url}`,
+                  url,
+                  name: fileNameFromUrl(url),
+                  kind: resolvePreviewKind(undefined, url),
+                })
+              }
               className="shrink-0 rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
             >
               <X className="size-3.5" />
             </button>
-          )}
-        </li>
-      ))}
-    </ul>
+          </li>
+        ))}
+        {pending.map((item, index) => (
+          <li
+            key={item.previewUrl}
+            className="flex items-center gap-3 rounded-xl border border-dashed border-border/60 bg-card/25 px-3 py-2 text-sm"
+          >
+            <CompactThumb
+              previewKind={resolvePreviewKind(item.file.type, item.file.name)}
+              src={item.previewUrl}
+            />
+            <span className="min-w-0 flex-1 truncate">{item.file.name}</span>
+            <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent">
+              Novo
+            </span>
+            {onRemovePending && (
+              <button
+                type="button"
+                aria-label={`Remover ${item.file.name}`}
+                onClick={() =>
+                  setToRemove({
+                    id: `pending-${item.previewUrl}`,
+                    url: item.previewUrl,
+                    name: item.file.name,
+                    kind: resolvePreviewKind(item.file.type, item.file.name),
+                    pendingIndex: index,
+                  })
+                }
+                className="shrink-0 rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {confirmDialog}
+    </>
   )
 }
