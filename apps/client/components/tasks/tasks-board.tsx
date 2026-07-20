@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   closestCorners,
   DndContext,
@@ -200,6 +200,32 @@ export function TasksBoard({
     })
   }
 
+  const handleSelectColumn = useCallback(
+    (status: TaskStatus, checked: boolean) => {
+      setSelectedIds((prev) => {
+        const columnIds = tasks
+          .filter((task) => task.status === status)
+          .map((task) => task.id)
+        if (columnIds.length === 0) return prev
+
+        const next = new Set(prev)
+        let changed = false
+        for (const id of columnIds) {
+          if (checked) {
+            if (!next.has(id)) {
+              next.add(id)
+              changed = true
+            }
+          } else if (next.delete(id)) {
+            changed = true
+          }
+        }
+        return changed ? next : prev
+      })
+    },
+    [tasks],
+  )
+
   async function handleBatchUpdate(
     patch: { status?: TaskStatus; priority?: Priority; dueDate?: string },
     successMessage: string,
@@ -288,6 +314,9 @@ export function TasksBoard({
                 showOwner={showOwner}
                 selectedIds={selectedIds}
                 onSelectedChange={handleSelectedChange}
+                onSelectColumn={(checked) =>
+                  handleSelectColumn(status, checked)
+                }
                 onDelete={(task) => setToDelete(task)}
                 onDuplicate={(task) => void handleDuplicate(task.id)}
                 onOpen={(task) => setDetailsTask(task)}
