@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { FileText, Paperclip, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import {
   AttachmentKindIcon,
@@ -10,27 +10,42 @@ import {
 } from '@/components/tasks/attachment-lightbox'
 import type { PendingAttachment } from '@/hooks/use-pending-attachments'
 import {
-  fileNameFromUrl,
+  attachmentKindMeta,
+  isLightboxPreviewable,
   resolvePreviewKind,
   type AttachmentPreviewKind,
 } from '@/lib/attachment'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { cn } from '@/lib/utils'
 
+export interface RemoteAttachmentRef {
+  url: string
+  originalName: string
+}
+
 interface AttachmentItem extends LightboxAttachment {
   pendingIndex?: number
 }
 
+/** Prefer the persisted original name; never derive labels from the storage URL. */
+function displayName(attachment: RemoteAttachmentRef): string {
+  const name = attachment.originalName.trim()
+  return name || 'Arquivo'
+}
+
 function buildItems(
-  urls: string[],
+  remote: RemoteAttachmentRef[],
   pending: PendingAttachment[],
 ): AttachmentItem[] {
-  const remote: AttachmentItem[] = urls.map((url) => ({
-    id: `remote-${url}`,
-    url,
-    name: fileNameFromUrl(url),
-    kind: resolvePreviewKind(undefined, url),
-  }))
+  const remoteItems: AttachmentItem[] = remote.map((attachment) => {
+    const name = displayName(attachment)
+    return {
+      id: `remote-${attachment.url}`,
+      url: attachment.url,
+      name,
+      kind: resolvePreviewKind(undefined, name),
+    }
+  })
   const local: AttachmentItem[] = pending.map((item, index) => ({
     id: `pending-${item.previewUrl}`,
     url: item.previewUrl,
@@ -38,7 +53,7 @@ function buildItems(
     kind: resolvePreviewKind(item.file.type, item.file.name),
     pendingIndex: index,
   }))
-  return [...remote, ...local]
+  return [...remoteItems, ...local]
 }
 
 function CompactThumb({
@@ -48,6 +63,8 @@ function CompactThumb({
   previewKind: AttachmentPreviewKind
   src: string
 }) {
+  const meta = attachmentKindMeta(previewKind)
+
   if (previewKind === 'image') {
     // eslint-disable-next-line @next/next/no-img-element
     return (
@@ -58,13 +75,15 @@ function CompactThumb({
       />
     )
   }
+
   return (
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-card/60">
-      {previewKind === 'pdf' ? (
-        <FileText className="size-4 text-muted-foreground" />
-      ) : (
-        <Paperclip className="size-3.5 text-muted-foreground" />
+    <span
+      className={cn(
+        'flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/40',
+        meta.tileClass,
       )}
+    >
+      <AttachmentKindIcon kind={previewKind} size="sm" />
     </span>
   )
 }
@@ -79,21 +98,24 @@ function GalleryTile({
   onRequestRemove: () => void
 }) {
   const isPending = item.pendingIndex !== undefined
+  const meta = attachmentKindMeta(item.kind)
+  const previewable = isLightboxPreviewable(item.kind)
 
   return (
-    <li className="group/tile relative">
+    <li className="group/tile relative min-w-0">
       <button
         type="button"
         onClick={onOpen}
         className={cn(
-          'flex w-full flex-col gap-2 rounded-2xl text-left transition active:scale-[0.98]',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'glass flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border/60 text-left transition active:scale-[0.98]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          isPending && 'border-dashed',
         )}
       >
         <span
           className={cn(
-            'relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-card/40',
-            isPending && 'border-dashed',
+            'relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden',
+            item.kind === 'image' ? 'bg-card/40' : meta.tileClass,
           )}
         >
           {item.kind === 'image' ? (
@@ -112,10 +134,25 @@ function GalleryTile({
             </span>
           )}
         </span>
-        <span className="line-clamp-2 px-0.5 text-xs font-medium leading-snug text-muted-foreground">
-          {item.name}
+
+        <span className="flex min-w-0 flex-col gap-1 border-t border-border/40 bg-card/30 px-3 py-2.5">
+          <span
+            className={cn(
+              'truncate text-[10px] font-medium',
+              previewable ? 'text-foreground/80' : 'text-muted-foreground',
+            )}
+          >
+            {meta.galleryHint}
+          </span>
+          <span className="truncate text-xs font-semibold tracking-tight text-foreground">
+            {item.name}
+          </span>
+          <span className={cn('truncate text-[10px] font-medium', meta.iconClass)}>
+            {meta.label}
+          </span>
         </span>
       </button>
+
       <IconTooltip label="Remover">
         <button
           type="button"
@@ -125,7 +162,7 @@ function GalleryTile({
             onRequestRemove()
           }}
           className={cn(
-            'absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground opacity-0 shadow transition',
+            'absolute top-2 right-2 z-10 inline-flex size-7 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground opacity-0 shadow transition',
             'hover:bg-destructive/15 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive',
             'group-hover/tile:opacity-100 group-focus-within/tile:opacity-100',
           )}
@@ -138,14 +175,14 @@ function GalleryTile({
 }
 
 export function AttachmentList({
-  urls,
+  attachments,
   onRemove,
   pending = [],
   onRemovePending,
   variant = 'list',
 }: {
-  /** Remote attachments already persisted on the task/profile. */
-  urls: string[]
+  /** Remote attachments already persisted on the task. */
+  attachments: RemoteAttachmentRef[]
   onRemove: (url: string) => void
   /** Picked locally, not uploaded yet - only sent to the API on submit. */
   pending?: PendingAttachment[]
@@ -153,7 +190,10 @@ export function AttachmentList({
   /** `gallery` = large preview grid + LightBox (TaskDetailsModal). */
   variant?: 'list' | 'gallery'
 }) {
-  const items = useMemo(() => buildItems(urls, pending), [urls, pending])
+  const items = useMemo(
+    () => buildItems(attachments, pending),
+    [attachments, pending],
+  )
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [toRemove, setToRemove] = useState<AttachmentItem | null>(null)
@@ -222,42 +262,46 @@ export function AttachmentList({
   return (
     <>
       <ul className="flex flex-col gap-1.5">
-        {urls.map((url) => (
-          <li
-            key={url}
-            className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-sm"
-          >
-            <CompactThumb
-              previewKind={resolvePreviewKind(undefined, url)}
-              src={url}
-            />
-            <a
-              href={url}
-              target="_blank"
-              rel="noreferrer"
-              className="min-w-0 flex-1 truncate underline-offset-2 hover:underline"
+        {attachments.map((attachment) => {
+          const name = displayName(attachment)
+          return (
+            <li
+              key={attachment.url}
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-sm"
             >
-              {fileNameFromUrl(url)}
-            </a>
-            <IconTooltip label="Remover">
-              <button
-                type="button"
-                aria-label={`Remover ${fileNameFromUrl(url)}`}
-                onClick={() =>
-                  setToRemove({
-                    id: `remote-${url}`,
-                    url,
-                    name: fileNameFromUrl(url),
-                    kind: resolvePreviewKind(undefined, url),
-                  })
-                }
-                className="shrink-0 rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+              <CompactThumb
+                previewKind={resolvePreviewKind(undefined, name)}
+                src={attachment.url}
+              />
+              <a
+                href={attachment.url}
+                target="_blank"
+                rel="noreferrer"
+                download={name}
+                className="min-w-0 flex-1 truncate underline-offset-2 hover:underline"
               >
-                <X className="size-3.5" />
-              </button>
-            </IconTooltip>
-          </li>
-        ))}
+                {name}
+              </a>
+              <IconTooltip label="Remover">
+                <button
+                  type="button"
+                  aria-label={`Remover ${name}`}
+                  onClick={() =>
+                    setToRemove({
+                      id: `remote-${attachment.url}`,
+                      url: attachment.url,
+                      name,
+                      kind: resolvePreviewKind(undefined, name),
+                    })
+                  }
+                  className="shrink-0 rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </IconTooltip>
+            </li>
+          )
+        })}
         {pending.map((item, index) => (
           <li
             key={item.previewUrl}

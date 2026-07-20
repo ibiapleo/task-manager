@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import ReactMarkdown from 'react-markdown'
 import {
   ChevronLeft,
   ChevronRight,
   Download,
-  FileText,
-  Paperclip,
   ZoomIn,
   ZoomOut,
   X,
 } from 'lucide-react'
-import type { AttachmentPreviewKind } from '@/lib/attachment'
+import {
+  attachmentKindMeta,
+  canAttemptTextPreview,
+  type AttachmentPreviewKind,
+} from '@/lib/attachment'
 import { GlassCard } from '@/components/ui/glass'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { cn } from '@/lib/utils'
@@ -27,6 +30,7 @@ export interface LightboxAttachment {
 const MIN_ZOOM = 0.5
 const MAX_ZOOM = 3
 const ZOOM_STEP = 0.25
+const TEXT_PREVIEW_LIMIT = 80_000
 
 interface AttachmentLightboxProps {
   items: LightboxAttachment[]
@@ -34,6 +38,298 @@ interface AttachmentLightboxProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onIndexChange: (index: number) => void
+}
+
+function DownloadFallbackPanel({
+  item,
+}: {
+  item: LightboxAttachment
+}) {
+  const meta = attachmentKindMeta(item.kind)
+  const Icon = meta.Icon
+
+  return (
+    <div className="flex flex-col items-center gap-4 p-8 text-center">
+      <span
+        className={cn(
+          'flex size-16 items-center justify-center rounded-2xl border border-border/50',
+          meta.tileClass,
+        )}
+      >
+        <Icon className={cn('size-7', meta.iconClass)} />
+      </span>
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium text-foreground">{meta.label}</p>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          {meta.unavailableMessage}
+        </p>
+      </div>
+      <a
+        href={item.url}
+        download={item.name}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition active:scale-95 hover:opacity-90"
+      >
+        <Download className="size-4" />
+        Baixar arquivo
+      </a>
+    </div>
+  )
+}
+
+function useFetchedText(url: string) {
+  const [text, setText] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setFailed(false)
+    setText(null)
+
+    async function load() {
+      try {
+        const response = await fetch(url)
+        if (!response.ok) throw new Error('fetch failed')
+        const body = await response.text()
+        if (cancelled) return
+        setText(
+          body.length > TEXT_PREVIEW_LIMIT
+            ? `${body.slice(0, TEXT_PREVIEW_LIMIT)}\n\n… (conteúdo truncado)`
+            : body,
+        )
+      } catch {
+        if (!cancelled) setFailed(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [url])
+
+  return { text, failed, loading }
+}
+
+function TextPreviewPanel({ item }: { item: LightboxAttachment }) {
+  const { text, failed, loading } = useFetchedText(item.url)
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 text-sm text-muted-foreground">
+        Carregando pré-visualização…
+      </div>
+    )
+  }
+
+  if (failed || text === null) {
+    return <DownloadFallbackPanel item={item} />
+  }
+
+  return (
+    <div className="flex h-full w-full flex-col gap-3 overflow-hidden p-4">
+      <p className="shrink-0 text-xs text-muted-foreground">
+        Pré-visualização de texto. Use Baixar para o arquivo completo.
+      </p>
+      <pre className="min-h-0 flex-1 overflow-auto rounded-2xl border border-border/50 bg-card/60 p-4 text-left text-xs leading-relaxed text-foreground whitespace-pre-wrap break-words">
+        {text}
+      </pre>
+      <a
+        href={item.url}
+        download={item.name}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 self-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition active:scale-95 hover:opacity-90"
+      >
+        <Download className="size-4" />
+        Baixar arquivo
+      </a>
+    </div>
+  )
+}
+
+function MarkdownPreviewPanel({ item }: { item: LightboxAttachment }) {
+  const { text, failed, loading } = useFetchedText(item.url)
+  const [mode, setMode] = useState<'preview' | 'source'>('preview')
+
+  useEffect(() => {
+    setMode('preview')
+  }, [item.url])
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 text-sm text-muted-foreground">
+        Carregando pré-visualização…
+      </div>
+    )
+  }
+
+  if (failed || text === null) {
+    return <DownloadFallbackPanel item={item} />
+  }
+
+  return (
+    <div className="flex h-full w-full flex-col gap-3 overflow-hidden p-4">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+        <div
+          role="tablist"
+          aria-label="Modo de visualização Markdown"
+          className="inline-flex rounded-full border border-border/60 bg-card/50 p-0.5"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'preview'}
+            onClick={() => setMode('preview')}
+            className={cn(
+              'rounded-full px-3 py-1.5 text-xs font-medium transition',
+              mode === 'preview'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            Pré-visualização
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'source'}
+            onClick={() => setMode('source')}
+            className={cn(
+              'rounded-full px-3 py-1.5 text-xs font-medium transition',
+              mode === 'source'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            Código
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Use Baixar para o arquivo completo.
+        </p>
+      </div>
+
+      {mode === 'preview' ? (
+        <article className="markdown-preview min-h-0 flex-1 overflow-auto rounded-2xl border border-border/50 bg-card/60 p-4 text-left text-sm leading-relaxed text-foreground">
+          <ReactMarkdown
+            components={{
+              h1: ({ children }) => (
+                <h1 className="mb-3 mt-4 text-xl font-semibold tracking-tight first:mt-0">
+                  {children}
+                </h1>
+              ),
+              h2: ({ children }) => (
+                <h2 className="mb-2 mt-4 text-lg font-semibold tracking-tight first:mt-0">
+                  {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="mb-2 mt-3 text-base font-semibold first:mt-0">
+                  {children}
+                </h3>
+              ),
+              p: ({ children }) => (
+                <p className="mb-3 last:mb-0">{children}</p>
+              ),
+              ul: ({ children }) => (
+                <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">
+                  {children}
+                </ol>
+              ),
+              li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+              a: ({ href, children }) => (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary underline underline-offset-2"
+                >
+                  {children}
+                </a>
+              ),
+              blockquote: ({ children }) => (
+                <blockquote className="mb-3 border-l-2 border-border pl-3 text-muted-foreground last:mb-0">
+                  {children}
+                </blockquote>
+              ),
+              code: ({ className, children }) => {
+                const isBlock = Boolean(className)
+                if (isBlock) {
+                  return (
+                    <code className="block overflow-x-auto rounded-xl bg-black/30 p-3 font-mono text-xs leading-relaxed">
+                      {children}
+                    </code>
+                  )
+                }
+                return (
+                  <code className="rounded bg-muted/80 px-1 py-0.5 font-mono text-[0.85em]">
+                    {children}
+                  </code>
+                )
+              },
+              pre: ({ children }) => (
+                <pre className="mb-3 overflow-x-auto rounded-xl last:mb-0">
+                  {children}
+                </pre>
+              ),
+              hr: () => <hr className="my-4 border-border/60" />,
+              table: ({ children }) => (
+                <div className="mb-3 overflow-x-auto last:mb-0">
+                  <table className="w-full border-collapse text-left text-xs">
+                    {children}
+                  </table>
+                </div>
+              ),
+              th: ({ children }) => (
+                <th className="border border-border/50 bg-muted/40 px-2 py-1.5 font-semibold">
+                  {children}
+                </th>
+              ),
+              td: ({ children }) => (
+                <td className="border border-border/50 px-2 py-1.5">{children}</td>
+              ),
+              img: ({ src, alt }) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={src}
+                  alt={alt ?? ''}
+                  className="my-3 max-h-80 max-w-full rounded-xl object-contain"
+                />
+              ),
+            }}
+          >
+            {text}
+          </ReactMarkdown>
+        </article>
+      ) : (
+        <pre className="min-h-0 flex-1 overflow-auto rounded-2xl border border-border/50 bg-card/60 p-4 text-left font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap break-words">
+          {text}
+        </pre>
+      )}
+
+      <a
+        href={item.url}
+        download={item.name}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 self-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition active:scale-95 hover:opacity-90"
+      >
+        <Download className="size-4" />
+        Baixar arquivo
+      </a>
+    </div>
+  )
 }
 
 /**
@@ -52,6 +348,15 @@ export function AttachmentLightbox({
   const [zoom, setZoom] = useState(1)
   const current = items[index] ?? null
   const hasNav = items.length > 1
+  const showImage = current?.kind === 'image'
+  const showPdf = current?.kind === 'pdf'
+  const showMarkdown = current?.kind === 'markdown'
+  const showTextPreview =
+    !!current &&
+    !showMarkdown &&
+    canAttemptTextPreview(current.kind, current.name)
+  const showFallback =
+    !!current && !showImage && !showPdf && !showMarkdown && !showTextPreview
 
   useEffect(() => {
     setZoom(1)
@@ -224,7 +529,7 @@ export function AttachmentLightbox({
               )
             }}
           >
-            {current.kind === 'image' && (
+            {showImage && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={current.url}
@@ -235,7 +540,7 @@ export function AttachmentLightbox({
               />
             )}
 
-            {current.kind === 'pdf' && (
+            {showPdf && (
               <iframe
                 src={current.url}
                 title={current.name}
@@ -243,26 +548,11 @@ export function AttachmentLightbox({
               />
             )}
 
-            {current.kind === 'other' && (
-              <div className="flex flex-col items-center gap-4 p-8 text-center">
-                <span className="flex size-16 items-center justify-center rounded-2xl border border-border/50 bg-card/60">
-                  <Paperclip className="size-7 text-muted-foreground" />
-                </span>
-                <p className="max-w-sm text-sm text-muted-foreground">
-                  Pré-visualização indisponível para este tipo de arquivo.
-                </p>
-                <a
-                  href={current.url}
-                  download={current.name}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition active:scale-95 hover:opacity-90"
-                >
-                  <Download className="size-4" />
-                  Baixar arquivo
-                </a>
-              </div>
-            )}
+            {showMarkdown && <MarkdownPreviewPanel item={current} />}
+
+            {showTextPreview && <TextPreviewPanel item={current} />}
+
+            {showFallback && <DownloadFallbackPanel item={current} />}
           </div>
         </div>
 
@@ -277,16 +567,25 @@ export function AttachmentLightbox({
   )
 }
 
-/** Small icon used when a gallery tile is not an image. */
+/** Colored icon used when a gallery tile is not an image thumbnail. */
 export function AttachmentKindIcon({
   kind,
   className,
+  size = 'lg',
 }: {
   kind: AttachmentPreviewKind
   className?: string
+  size?: 'sm' | 'lg'
 }) {
-  if (kind === 'pdf') {
-    return <FileText className={cn('size-10 text-muted-foreground', className)} />
-  }
-  return <Paperclip className={cn('size-10 text-muted-foreground', className)} />
+  const meta = attachmentKindMeta(kind)
+  const Icon = meta.Icon
+  return (
+    <Icon
+      className={cn(
+        size === 'lg' ? 'size-10' : 'size-4',
+        meta.iconClass,
+        className,
+      )}
+    />
+  )
 }

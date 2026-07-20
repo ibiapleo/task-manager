@@ -4,10 +4,17 @@ import { PrioritySchema, TaskStatusSchema } from './enums';
 export const AttachmentResponseSchema = z.object({
   id: z.string().uuid(),
   url: z.string(),
+  originalName: z.string().min(1).max(255),
   fileType: z.string(),
   createdAt: z.string(),
 });
 export type AttachmentResponse = z.infer<typeof AttachmentResponseSchema>;
+
+export const AttachmentInputSchema = z.object({
+  url: z.string().url(),
+  originalName: z.string().trim().min(1).max(255),
+});
+export type AttachmentInput = z.infer<typeof AttachmentInputSchema>;
 
 export const TaskUserResponseSchema = z.object({
   id: z.string().uuid(),
@@ -44,7 +51,7 @@ export const CreateTaskInputSchema = z.object({
   dueDate: z.string().min(1).optional(),
   status: TaskStatusSchema.optional(),
   priority: PrioritySchema.optional(),
-  attachments: z.array(z.string().url()).max(20).optional(),
+  attachments: z.array(AttachmentInputSchema).max(20).optional(),
 });
 export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;
 

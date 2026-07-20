@@ -51,7 +51,8 @@ export class TasksController {
     description:
       'Creates a task owned by the authenticated user. The profile id is ' +
       'always taken from the access token, never from the request body. ' +
-      'Optionally accepts attachment URLs already uploaded to Supabase Storage.',
+      'Optionally accepts attachments already uploaded to Supabase Storage ' +
+      '(each with a public URL and the original filename).',
   })
   @ApiResponse({ status: 201, description: 'Task created successfully.' })
   @ApiResponse({

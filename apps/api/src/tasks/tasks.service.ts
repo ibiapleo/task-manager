@@ -170,9 +170,10 @@ export class TasksService {
           ? {
               attachments: {
                 deleteMany: {},
-                create: dto.attachments.map((url) => ({
-                  url,
-                  fileType: resolveFileType(url),
+                create: dto.attachments.map((attachment) => ({
+                  url: attachment.url,
+                  originalName: attachment.originalName,
+                  fileType: resolveFileType(attachment.url),
                 })),
               },
             }
@@ -394,14 +395,18 @@ export class TasksService {
   }
 
   private buildAttachmentsCreateInput(
-    urls: string[] | undefined,
+    attachments: CreateTaskDto['attachments'],
   ): Prisma.AttachmentCreateNestedManyWithoutTaskInput | undefined {
-    if (!urls || urls.length === 0) {
+    if (!attachments || attachments.length === 0) {
       return undefined;
     }
 
     return {
-      create: urls.map((url) => ({ url, fileType: resolveFileType(url) })),
+      create: attachments.map((attachment) => ({
+        url: attachment.url,
+        originalName: attachment.originalName,
+        fileType: resolveFileType(attachment.url),
+      })),
     };
   }
 
@@ -424,6 +429,7 @@ export class TasksService {
       attachments: task.attachments.map((attachment) => ({
         id: attachment.id,
         url: attachment.url,
+        originalName: attachment.originalName,
         fileType: attachment.fileType,
         createdAt: attachment.createdAt,
       })),
