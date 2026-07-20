@@ -14,6 +14,7 @@ interface KanbanColumnProps {
   selectedIds?: Set<string>
   onSelectedChange?: (taskId: string, selected: boolean) => void
   onDelete: (task: Task) => void
+  onDuplicate?: (task: Task) => void
   onOpen: (task: Task) => void
 }
 
@@ -24,6 +25,7 @@ export function KanbanColumn({
   selectedIds,
   onSelectedChange,
   onDelete,
+  onDuplicate,
   onOpen,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
@@ -68,6 +70,9 @@ export function KanbanColumn({
                   : undefined
               }
               onDelete={() => onDelete(task)}
+              onDuplicate={
+                onDuplicate ? () => onDuplicate(task) : undefined
+              }
               onOpen={() => onOpen(task)}
             />
           ))}

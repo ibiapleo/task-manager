@@ -9,6 +9,8 @@ import type {
   TaskResponse,
   TaskStatusSummary,
   UpdateTaskInput,
+  UpdateTasksBatchInput,
+  UpdateTasksBatchResponse,
 } from '@task-manager/shared-types'
 import { apiClient } from '@/lib/api-client'
 import { useProfile } from '@/hooks/use-profile'
@@ -151,6 +153,87 @@ export function useUpdateTask() {
       })
     },
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all() })
+    },
+  })
+}
+
+export function useUpdateTasks() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: UpdateTasksBatchInput) =>
+      apiClient.patch<UpdateTasksBatchResponse>('/tasks/batch', input),
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.tasks.all() })
+
+      const idSet = new Set(input.ids)
+      const { ids: _ids, ...patch } = input
+      const previousLists = queryClient.getQueriesData<
+        PaginatedResult<TaskResponse>
+      >({ queryKey: queryKeys.tasks.all() })
+
+      previousLists.forEach(([key, data]) => {
+        if (!data || !Array.isArray(data.data)) return
+        queryClient.setQueryData(key, {
+          ...data,
+          data: data.data.map((task) => {
+            if (!idSet.has(task.id)) return task
+            return {
+              ...task,
+              ...(patch.status !== undefined ? { status: patch.status } : {}),
+              ...(patch.priority !== undefined
+                ? { priority: patch.priority }
+                : {}),
+              ...(patch.dueDate !== undefined
+                ? { dueDate: patch.dueDate || null }
+                : {}),
+            }
+          }),
+        })
+      })
+
+      return { previousLists }
+    },
+    onError: (_error, _input, context) => {
+      context?.previousLists.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data)
+      })
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all() })
+    },
+  })
+}
+
+export function useDuplicateTask() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.post<TaskResponse>(`/tasks/${id}/duplicate`),
+    onSuccess: (created) => {
+      const previousLists = queryClient.getQueriesData<
+        PaginatedResult<TaskResponse>
+      >({ queryKey: queryKeys.tasks.all() })
+
+      previousLists.forEach(([key, data]) => {
+        if (!data || !Array.isArray(data.data)) return
+        const total = data.meta.total + 1
+        queryClient.setQueryData(key, {
+          ...data,
+          data: [created, ...data.data],
+          meta: {
+            ...data.meta,
+            total,
+            totalPages:
+              data.meta.limit <= 0
+                ? 0
+                : total === 0
+                  ? 0
+                  : Math.ceil(total / data.meta.limit),
+          },
+        })
+      })
+
       void queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all() })
     },
   })

@@ -12,6 +12,7 @@ interface SortableTaskProps {
   selected?: boolean
   onSelectedChange?: (selected: boolean) => void
   onDelete?: () => void
+  onDuplicate?: () => void
   onOpen?: () => void
 }
 
@@ -22,6 +23,7 @@ export function SortableTask({
   selected,
   onSelectedChange,
   onDelete,
+  onDuplicate,
   onOpen,
 }: SortableTaskProps) {
   const {
@@ -43,6 +45,7 @@ export function SortableTask({
       selected={selected}
       onSelectedChange={onSelectedChange}
       onDelete={onDelete}
+      onDuplicate={onDuplicate}
       onOpen={onOpen}
       handleProps={{ ...attributes, ...(listeners as object) }}
       style={{
