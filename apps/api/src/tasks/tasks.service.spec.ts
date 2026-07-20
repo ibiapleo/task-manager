@@ -400,7 +400,7 @@ describe('TasksService', () => {
       expect(prisma.task.create).not.toHaveBeenCalled();
     });
 
-    it('allows an ADMIN to duplicate a foreign task owned by the admin', async () => {
+    it('allows an ADMIN to duplicate a foreign task', async () => {
       const source = buildTask({
         profileId: OTHER_USER_ID,
         title: 'Admin copy',
