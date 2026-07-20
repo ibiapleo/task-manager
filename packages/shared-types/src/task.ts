@@ -52,7 +52,13 @@ export const UpdateTaskInputSchema = CreateTaskInputSchema.partial();
 export type UpdateTaskInput = z.infer<typeof UpdateTaskInputSchema>;
 
 export const DeleteTasksBatchInputSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(100),
+  ids: z
+    .array(z.string().uuid())
+    .min(1)
+    .max(100)
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: 'ids must be unique',
+    }),
 });
 export type DeleteTasksBatchInput = z.infer<typeof DeleteTasksBatchInputSchema>;
 

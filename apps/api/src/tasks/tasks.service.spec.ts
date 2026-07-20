@@ -189,9 +189,6 @@ describe('TasksService', () => {
     const TASK_B = '22222222-2222-4222-8222-222222222222';
 
     beforeEach(() => {
-      prisma.$transaction.mockImplementation(
-        (operations: Promise<unknown>[]) => Promise.all(operations),
-      );
       prisma.task.deleteMany.mockResolvedValue({ count: 2 });
     });
 
@@ -244,6 +241,18 @@ describe('TasksService', () => {
         service.removeMany([TASK_A, TASK_B], ownerUser),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(prisma.task.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when delete count mismatches', async () => {
+      prisma.task.findMany.mockResolvedValue([
+        { id: TASK_A, profileId: OWNER_ID },
+        { id: TASK_B, profileId: OWNER_ID },
+      ]);
+      prisma.task.deleteMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        service.removeMany([TASK_A, TASK_B], ownerUser),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 

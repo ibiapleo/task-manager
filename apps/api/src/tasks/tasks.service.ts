@@ -209,11 +209,13 @@ export class TasksService {
 
     const deletedIds = found.map((task) => task.id);
 
-    await this.prisma.$transaction([
-      this.prisma.task.deleteMany({
-        where: { id: { in: deletedIds } },
-      }),
-    ]);
+    const { count } = await this.prisma.task.deleteMany({
+      where: { id: { in: deletedIds } },
+    });
+
+    if (count !== deletedIds.length) {
+      throw new NotFoundException('One or more tasks were not found.');
+    }
 
     return { deletedIds };
   }
