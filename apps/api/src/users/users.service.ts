@@ -47,15 +47,25 @@ export class UsersService {
   async findAll(
     filter: UserFilterDto,
   ): Promise<PaginatedResult<ProfileResponse>> {
-    const { page = 1, limit = 20 } = filter;
+    const { page = 1, limit = 20, search } = filter;
+
+    const where: Prisma.ProfileWhereInput = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {};
 
     const [profiles, total] = await this.prisma.$transaction([
       this.prisma.profile.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.profile.count(),
+      this.prisma.profile.count({ where }),
     ]);
 
     return {

@@ -176,5 +176,30 @@ describe('UsersService', () => {
         totalPages: 1,
       });
     });
+
+    it('applies a case-insensitive search on name and email', async () => {
+      prisma.$transaction.mockResolvedValue([[], 0]);
+
+      await service.findAll({ page: 1, limit: 20, search: 'ana' });
+
+      expect(prisma.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            OR: [
+              { name: { contains: 'ana', mode: 'insensitive' } },
+              { email: { contains: 'ana', mode: 'insensitive' } },
+            ],
+          },
+        }),
+      );
+      expect(prisma.profile.count).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { name: { contains: 'ana', mode: 'insensitive' } },
+            { email: { contains: 'ana', mode: 'insensitive' } },
+          ],
+        },
+      });
+    });
   });
 });

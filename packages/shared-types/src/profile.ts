@@ -29,5 +29,6 @@ export type UpdateRoleInput = z.infer<typeof UpdateRoleInputSchema>;
 export const UserFilterInputSchema = z.object({
   page: z.number().int().min(1).optional(),
   limit: z.number().int().min(1).max(100).optional(),
+  search: z.string().trim().max(120).optional(),
 });
 export type UserFilterInput = z.infer<typeof UserFilterInputSchema>;
