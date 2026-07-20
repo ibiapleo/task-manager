@@ -38,6 +38,8 @@ interface TaskCardProps extends React.HTMLAttributes<HTMLDivElement> {
   showOwner?: boolean
   dragging?: boolean
   overlay?: boolean
+  selected?: boolean
+  onSelectedChange?: (selected: boolean) => void
   handleProps?: React.HTMLAttributes<HTMLButtonElement>
   onDelete?: () => void
   onOpen?: () => void
@@ -51,6 +53,8 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       showOwner = false,
       dragging,
       overlay,
+      selected = false,
+      onSelectedChange,
       handleProps,
       onDelete,
       onOpen,
@@ -101,19 +105,39 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
         onClick={onOpen}
         {...props}
       >
-        {handleProps && (
-          <button
-            type="button"
-            aria-label="Arrastar tarefa"
-            onClick={(e) => e.stopPropagation()}
+        {(onSelectedChange || handleProps) && (
+          <div
             className={cn(
-              'flex size-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-xl text-muted-foreground transition hover:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing',
+              'flex shrink-0 items-center gap-1',
               variant === 'kanban' && 'mb-2',
             )}
-            {...handleProps}
           >
-            <GripVertical className="size-4" />
-          </button>
+            {onSelectedChange && (
+              <label
+                className="flex size-8 items-center justify-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  aria-label={`Selecionar tarefa ${task.title}`}
+                  onChange={(e) => onSelectedChange(e.target.checked)}
+                  className="checkbox-circle"
+                />
+              </label>
+            )}
+            {handleProps && (
+              <button
+                type="button"
+                aria-label="Arrastar tarefa"
+                onClick={(e) => e.stopPropagation()}
+                className="flex size-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-xl text-muted-foreground transition hover:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+                {...handleProps}
+              >
+                <GripVertical className="size-4" />
+              </button>
+            )}
+          </div>
         )}
 
         <div className={cn(variant === 'list' && 'min-w-0 flex-1')}>

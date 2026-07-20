@@ -11,6 +11,8 @@ interface KanbanColumnProps {
   status: TaskStatus
   tasks: Task[]
   showOwner?: boolean
+  selectedIds?: Set<string>
+  onSelectedChange?: (taskId: string, selected: boolean) => void
   onDelete: (task: Task) => void
   onOpen: (task: Task) => void
 }
@@ -19,6 +21,8 @@ export function KanbanColumn({
   status,
   tasks,
   showOwner = false,
+  selectedIds,
+  onSelectedChange,
   onDelete,
   onOpen,
 }: KanbanColumnProps) {
@@ -57,6 +61,12 @@ export function KanbanColumn({
               task={task}
               variant="kanban"
               showOwner={showOwner}
+              selected={selectedIds?.has(task.id)}
+              onSelectedChange={
+                onSelectedChange
+                  ? (selected) => onSelectedChange(task.id, selected)
+                  : undefined
+              }
               onDelete={() => onDelete(task)}
               onOpen={() => onOpen(task)}
             />

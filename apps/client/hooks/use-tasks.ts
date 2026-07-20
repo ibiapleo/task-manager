@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   CreateTaskInput,
+  DeleteTasksBatchResponse,
   PaginatedResult,
   TaskFilterInput,
   TaskResponse,
@@ -169,15 +170,75 @@ export function useDeleteTask() {
 
       previousLists.forEach(([key, data]) => {
         if (!data || !Array.isArray(data.data)) return
+        const nextData = data.data.filter((task) => task.id !== id)
+        const removed = data.data.length - nextData.length
+        const total = Math.max(0, data.meta.total - removed)
         queryClient.setQueryData(key, {
           ...data,
-          data: data.data.filter((task) => task.id !== id),
+          data: nextData,
+          meta: {
+            ...data.meta,
+            total,
+            totalPages:
+              data.meta.limit <= 0
+                ? 0
+                : total === 0
+                  ? 0
+                  : Math.ceil(total / data.meta.limit),
+          },
         })
       })
 
       return { previousLists }
     },
     onError: (_error, _id, context) => {
+      context?.previousLists.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data)
+      })
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all() })
+    },
+  })
+}
+
+export function useDeleteTasks() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      apiClient.delete<DeleteTasksBatchResponse>('/tasks/batch', { ids }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.tasks.all() })
+
+      const idSet = new Set(ids)
+      const previousLists = queryClient.getQueriesData<
+        PaginatedResult<TaskResponse>
+      >({ queryKey: queryKeys.tasks.all() })
+
+      previousLists.forEach(([key, data]) => {
+        if (!data || !Array.isArray(data.data)) return
+        const nextData = data.data.filter((task) => !idSet.has(task.id))
+        const removed = data.data.length - nextData.length
+        const total = Math.max(0, data.meta.total - removed)
+        queryClient.setQueryData(key, {
+          ...data,
+          data: nextData,
+          meta: {
+            ...data.meta,
+            total,
+            totalPages:
+              data.meta.limit <= 0
+                ? 0
+                : total === 0
+                  ? 0
+                  : Math.ceil(total / data.meta.limit),
+          },
+        })
+      })
+
+      return { previousLists }
+    },
+    onError: (_error, _ids, context) => {
       context?.previousLists.forEach(([key, data]) => {
         queryClient.setQueryData(key, data)
       })
