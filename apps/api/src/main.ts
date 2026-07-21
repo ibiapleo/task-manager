@@ -4,10 +4,6 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
-// Comma-separated FRONTEND_URL (e.g. "https://app.example.com,https://staging.example.com").
-// Falls back to the local frontend dev server so `enableCors` never has to
-// fall back to a wildcard origin, which is incompatible with credentials: true
-// anyway and unsafe for a resource server that receives Supabase access tokens.
 const DEFAULT_DEV_ORIGIN = 'http://localhost:3000';
 
 function resolveAllowedOrigins(configService: ConfigService): string[] {
@@ -69,7 +65,7 @@ async function bootstrap(): Promise<void> {
     swaggerOptions: { persistAuthorization: true },
   });
 
-  const port = configService.get<number>('PORT', 3001);
+  const port = configService.get<number>('API_PORT', 3001);
 
   await app.listen(port);
 }

@@ -57,7 +57,7 @@ cp .env.example .env
 cp apps/client/.env.example apps/client/.env
 ```
 
-Preencha as variáveis apontando para o seu projeto Supabase e para a API local (`NEXT_PUBLIC_API_URL=http://localhost:3001`, `FRONTEND_URL=http://localhost:3000`, etc.). Os arquivos `.env.example` documentam cada chave.
+Preencha as variáveis apontando para o seu projeto Supabase e para a API local (`NEXT_PUBLIC_API_URL`, `API_PORT`, `CLIENT_PORT`, `FRONTEND_URL`, etc.). Os arquivos `.env.example` documentam cada chave.
 
 ```bash
 yarn install
@@ -79,12 +79,25 @@ yarn:dev
 
 ## Docker
 
-A meta é poder subir o ambiente via Docker (hoje o repositório já tem `docker-compose.yml` focado na API). Quando o fluxo estiver fechado (imagem do client, rede, variáveis e ordem de boot), os comandos oficiais ficarão nesta seção. Até lá, use o fluxo local com `yarn:dev` acima.
+Ambiente local production-like (API Nest + client Next standalone). Postgres/Auth continuam no Supabase remoto via variáveis do `.env` na raiz.
 
 ```bash
-# Planejado — não é ainda o caminho principal de desenvolvimento
-# docker compose up --build
+cp .env.example .env
+
+docker compose up --build -d
 ```
+
+| Serviço | Container | URL |
+| ------- | --------- | --- |
+| Client | `task-manager-client` | [http://localhost:3000](http://localhost:3000) |
+| API | `task-manager-api` | [http://localhost:3001](http://localhost:3001) |
+| Swagger | `task-manager-api` | [http://localhost:3001/docs](http://localhost:3001/docs) |
+
+`NEXT_PUBLIC_API_URL` deve apontar para `http://localhost:${API_PORT}` (porta publicada no host), não para o hostname interno do Compose.
+
+Rebuilds reutilizam cache BuildKit do Yarn e do Next (`.next/cache`); a primeira build continua mais lenta, as seguintes bem mais rápidas se `package.json` / lockfile não mudarem.
+
+Para desenvolvimento com hot-reload, use o fluxo `yarn:dev` acima.
 
 ## Uso de IA
 
@@ -105,5 +118,5 @@ O vídeo de apresentação (máx. 7 minutos) será gravado e o link incluído aq
 
 - A divisão auth (Supabase) / domínio (Nest) / UI (Next) é intencional: cada camada tem um motivo claro de existir.
 - Regras de papel e ownership foram pensadas para não depender de “esconder botão” no frontend.
-- A documentação de Docker e o fechamento da entrega (vídeo) ainda evoluem; a base conceitual e o fluxo local descrevem o estado esperado da solução.
+- A documentação de Docker descreve o fluxo `docker compose up --build -d` com containers `task-manager-api` e `task-manager-client`; o vídeo de apresentação ainda evolui.
 
