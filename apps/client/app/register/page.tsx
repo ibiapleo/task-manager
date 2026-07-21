@@ -5,26 +5,18 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
+import {
+  RegisterInputSchema,
+  type RegisterInput,
+} from '@task-manager/shared-types'
 import { ArrowRight, CheckCircle2, ListChecks, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/components/auth-provider'
+import { PasswordField } from '@/components/password-field'
+import { PasswordRequirements } from '@/components/password-requirements'
 import { useTheme } from '@/components/theme-provider'
 import { GlassCard } from '@/components/ui/glass'
 import { cn } from '@/lib/utils'
-
-const registerSchema = z
-  .object({
-    email: z.string().min(1, 'Informe seu e-mail.').email('E-mail inválido.'),
-    password: z.string().min(6, 'A senha deve ter ao menos 6 caracteres.'),
-    confirmPassword: z.string().min(1, 'Confirme sua senha.'),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'As senhas não coincidem.',
-    path: ['confirmPassword'],
-  })
-
-type RegisterFormValues = z.infer<typeof registerSchema>
 
 export default function RegisterPage() {
   const { signUp } = useAuth()
@@ -36,10 +28,16 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterFormValues>({ resolver: zodResolver(registerSchema) })
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(RegisterInputSchema),
+    defaultValues: { email: '', password: '', confirmPassword: '' },
+  })
 
-  async function onSubmit(values: RegisterFormValues) {
+  const password = watch('password')
+
+  async function onSubmit(values: RegisterInput) {
     try {
       const { requiresEmailConfirmation } = await signUp(
         values.email,
@@ -125,52 +123,23 @@ export default function RegisterPage() {
               </p>
             )}
           </div>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Senha
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="••••••••"
-              aria-invalid={!!errors.password}
-              {...register('password')}
-              className={cn(
-                'h-12 w-full rounded-full border border-border/60 bg-card/50 px-5 text-sm outline-none backdrop-blur-md transition',
-                'placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50',
-                errors.password && 'border-destructive',
-              )}
-            />
-            {errors.password && (
-              <p className="text-xs text-destructive">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="confirmPassword" className="text-sm font-medium">
-              Confirmar senha
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              placeholder="••••••••"
-              aria-invalid={!!errors.confirmPassword}
-              {...register('confirmPassword')}
-              className={cn(
-                'h-12 w-full rounded-full border border-border/60 bg-card/50 px-5 text-sm outline-none backdrop-blur-md transition',
-                'placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50',
-                errors.confirmPassword && 'border-destructive',
-              )}
-            />
-            {errors.confirmPassword && (
-              <p className="text-xs text-destructive">
-                {errors.confirmPassword.message}
-              </p>
-            )}
-          </div>
+          <PasswordField
+            id="password"
+            label="Senha"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            error={errors.password?.message}
+            {...register('password')}
+          />
+          <PasswordRequirements password={password ?? ''} />
+          <PasswordField
+            id="confirmPassword"
+            label="Confirmar senha"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            error={errors.confirmPassword?.message}
+            {...register('confirmPassword')}
+          />
           <button
             type="submit"
             disabled={isSubmitting}
