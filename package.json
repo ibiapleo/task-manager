@@ -7,9 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n api,client -c blue,magenta \"yarn:start:dev\" \"yarn:client:dev\"",
-    "start:dev": "yarn workspace api start:dev",
-    "build": "yarn workspace api build",
+    "build:shared": "yarn workspace @task-manager/shared-types build",
+    "dev": "yarn build:shared && concurrently -n api,client -c blue,magenta \"yarn:start:dev\" \"yarn:client:dev\"",
+    "start:dev": "yarn build:shared && yarn workspace api start:dev",
+    "build": "yarn build:shared && yarn workspace api build",
     "lint": "yarn workspace api lint",
     "test": "yarn workspace api test",
     "test:e2e": "yarn workspace api test:e2e",

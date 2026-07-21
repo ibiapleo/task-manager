@@ -3,8 +3,9 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Session } from '@supabase/supabase-js'
+import type { RegisterResponse } from '@task-manager/shared-types'
 import { toast } from 'sonner'
-import { setUnauthorizedHandler } from '@/lib/api-client'
+import { apiClient, setUnauthorizedHandler } from '@/lib/api-client'
 import { supabase } from '@/lib/supabase-client'
 
 interface AuthContextValue {
@@ -75,16 +76,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     })
-    if (error) throw new Error(error.message)
+    if (error) {
+      const isInvalidCredentials = /invalid login credentials/i.test(
+        error.message,
+      )
+      throw new Error(
+        isInvalidCredentials
+          ? 'E-mail ou senha incorretos.'
+          : error.message,
+      )
+    }
   }
 
   async function signUp(email: string, password: string) {
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) throw new Error(error.message)
-    // If email confirmation is required, Supabase returns a user but no
-    // session yet - the caller should show a "check your inbox" message
-    // instead of redirecting straight into the app.
-    return { requiresEmailConfirmation: !data.session }
+    // Password policy is enforced by Nest RegisterDto; then Supabase signUp
+    // runs server-side. The browser never calls auth.signUp directly.
+    const result = await apiClient.post<RegisterResponse>('/auth/register', {
+      email,
+      password,
+    })
+
+    if (result.session) {
+      const { error } = await supabase.auth.setSession({
+        access_token: result.session.accessToken,
+        refresh_token: result.session.refreshToken,
+      })
+      if (error) throw new Error(error.message)
+    }
+
+    return { requiresEmailConfirmation: result.requiresEmailConfirmation }
   }
 
   return (

@@ -8,13 +8,15 @@ import { z } from 'zod'
 import { ArrowRight, ListChecks, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/components/auth-provider'
+import { PasswordField } from '@/components/password-field'
 import { useTheme } from '@/components/theme-provider'
 import { GlassCard } from '@/components/ui/glass'
 import { cn } from '@/lib/utils'
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Informe seu e-mail.').email('E-mail inválido.'),
-  password: z.string().min(6, 'A senha deve ter ao menos 6 caracteres.'),
+  // Login stays light: legacy accounts are not forced through complexity rules.
+  password: z.string().min(1, 'Informe sua senha.'),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -93,29 +95,14 @@ export default function LoginPage() {
               </p>
             )}
           </div>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Senha
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-              aria-invalid={!!errors.password}
-              {...register('password')}
-              className={cn(
-                'h-12 w-full rounded-full border border-border/60 bg-card/50 px-5 text-sm outline-none backdrop-blur-md transition',
-                'placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50',
-                errors.password && 'border-destructive',
-              )}
-            />
-            {errors.password && (
-              <p className="text-xs text-destructive">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
+          <PasswordField
+            id="password"
+            label="Senha"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            error={errors.password?.message}
+            {...register('password')}
+          />
           <button
             type="submit"
             disabled={isSubmitting}
