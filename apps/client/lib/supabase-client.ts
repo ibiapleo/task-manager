@@ -18,9 +18,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
  * ever sees the resulting access token as a Bearer header.
  *
  * Session persistence uses the SDK's own storage (localStorage by default)
- * with automatic refresh-token rotation, which is the standard, secure
- * approach for SPA-style clients that never expose the anon key beyond what
- * Supabase already treats as public.
+ * with automatic refresh-token rotation (`autoRefreshToken` + `persistSession`).
+ * The api-client interceptor complements those timers: on 401 it runs a
+ * single-flight `refreshSession` and retries the request before forcing logout.
  */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
