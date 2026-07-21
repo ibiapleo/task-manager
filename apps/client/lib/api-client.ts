@@ -1,6 +1,12 @@
+import { createEnsureFreshSession } from './auth-refresh'
 import { supabase } from './supabase-client'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+
+const ensureFreshSession = createEnsureFreshSession({
+  getSession: () => supabase.auth.getSession(),
+  refreshSession: () => supabase.auth.refreshSession(),
+})
 
 export class ApiError extends Error {
   readonly status: number
@@ -16,7 +22,6 @@ type UnauthorizedHandler = () => void
 
 let unauthorizedHandler: UnauthorizedHandler | null = null
 
-/** Registered once by AuthProvider so a 401 from any request can sign the user out. */
 export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
   unauthorizedHandler = handler
 }
@@ -56,11 +61,19 @@ interface NestErrorBody {
   error?: string
 }
 
+function errorMessage(payload: NestErrorBody | null, fallback: string): string {
+  if (!payload) return fallback
+  return Array.isArray(payload.message)
+    ? payload.message.join(', ')
+    : payload.message ?? fallback
+}
+
 async function request<T>(
   method: string,
   path: string,
   body?: unknown,
   options?: RequestOptions,
+  retried = false,
 ): Promise<T> {
   const response = await fetch(buildUrl(path, options?.query), {
     method,
@@ -79,12 +92,19 @@ async function request<T>(
   const payload: NestErrorBody | T | null = await response.json().catch(() => null)
 
   if (!response.ok) {
-    const errorBody = payload as NestErrorBody | null
-    const message = Array.isArray(errorBody?.message)
-      ? errorBody.message.join(', ')
-      : errorBody?.message ?? response.statusText ?? 'Unexpected error'
+    const nestBody = payload as NestErrorBody | null
+    const message = errorMessage(
+      nestBody,
+      response.statusText || 'Unexpected error',
+    )
 
     if (response.status === 401) {
+      if (!retried) {
+        const refreshed = await ensureFreshSession()
+        if (refreshed) {
+          return request<T>(method, path, body, options, true)
+        }
+      }
       unauthorizedHandler?.()
     }
 
@@ -96,8 +116,8 @@ async function request<T>(
 
 /**
  * Thin, typed Fetch API wrapper shared by every hook in the app. Centralizes
- * auth header injection and NestJS error-body parsing so hooks/components
- * never touch `fetch` directly.
+ * auth header injection, silent token refresh on 401, and NestJS error-body
+ * parsing so hooks/components never touch `fetch` directly.
  */
 export const apiClient = {
   get: <T>(path: string, options?: RequestOptions) =>

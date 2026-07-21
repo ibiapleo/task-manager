@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUnauthorizedHandler(() => {
       toast.error('Sua sessão expirou. Entre novamente.')
       void signOut().catch((err) => {
-        console.error('Forced sign out after 401 failed:', err)
+        console.error('Forced sign out after irrecoverable session failed:', err)
       })
     })
     return () => setUnauthorizedHandler(null)
