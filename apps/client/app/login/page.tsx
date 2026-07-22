@@ -15,7 +15,6 @@ import { cn } from '@/lib/utils'
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Informe seu e-mail.').email('E-mail inválido.'),
-  // Login stays light: legacy accounts are not forced through complexity rules.
   password: z.string().min(1, 'Informe sua senha.'),
 })
 
@@ -52,13 +51,11 @@ export default function LoginPage() {
           {isRetro ? '[ PRISM // TASK MANAGER ]' : 'Prism · Task Manager'}
         </span>
         <h1 className="max-w-3xl text-5xl font-extrabold tracking-tighter text-balance sm:text-6xl md:text-7xl">
-          {isRetro
-            ? 'Onde design vira código e tarefas viram fluxo.'
-            : 'A plataforma onde equipes transformam ideias em fluxo.'}
+          A plataforma onde você transforma ideias em fluxo.
         </h1>
         <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground text-pretty">
-          Entre para organizar suas tarefas em lista ou Kanban, arraste e
-          solte, e alterne entre quatro temas dinâmicos.
+          Organize suas tarefas em lista ou quadro Kanban, personalize o tema do seu jeito 
+          e mantenha o controle total do seu dia em um só lugar.
         </p>
       </div>
 
@@ -80,7 +77,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="voce@suaequipe.com"
+              placeholder="voce@seuemail.com"
               aria-invalid={!!errors.email}
               {...register('email')}
               className={cn(
