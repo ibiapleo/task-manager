@@ -1,72 +1,88 @@
-# Task Manager
+# Prism - Task Manager
 
-Aplicação web para organizar tarefas no dia a dia: o usuário autentica, mantém um perfil com preferências e trabalha em um board (lista ou kanban) com status, prioridade, prazo e anexos. Contas comuns veem e alteram apenas o próprio trabalho; administradores têm visão da plataforma — inclusive listar tarefas de todos e gerenciar papéis.
+[NestJS](https://nestjs.com/)
+[Next.js](https://nextjs.org/)
+[Supabase](https://supabase.com/)
+[Prisma](https://www.prisma.io/)
+[Docker](https://docs.docker.com/compose/)
 
-Conceitualmente, o sistema separa três responsabilidades: **identidade e mídia** (quem é o usuário e onde ficam arquivos), **domínio de negócio** (tarefas, papéis, preferências de produto) e **experiência** (board, filtros, ajustes). A identidade e o armazenamento de arquivos ficam no Supabase; as regras de quem pode ver ou editar o quê ficam numa API própria; a interface consome as duas de forma coordenada.
+Aplicação web moderna desenvolvida para o gerenciamento eficiente de tarefas no dia a dia, combinando a simplicidade de uma lista de tarefas (*to-do list*) intuitiva com recursos avançados de rastreamento e organização inspirados em ferramentas profissionais de gestão de projetos. O sistema conta com autenticação segura, customização de preferências diretamente na conta e um painel dinâmico com visualização flexível em modo lista ou kanban, oferecendo suporte completo a status, prioridade, prazos (*deadlines*) e anexos de arquivos. Contando com um controle de acesso robusto baseado em papéis (RBAC), usuários comuns gerenciam exclusivamente o próprio trabalho, enquanto administradores possuem visão global da plataforma, incluindo permissão para listar tarefas de qualquer usuário e gerenciar papéis de acesso.
 
-## Arquitetura
+---
 
-```
-apps/client/              # Next.js — UI e ciclo de autenticação
-apps/api/                 # NestJS — regras de negócio e persistência de domínio
-packages/shared-types/    # Contratos TypeScript/Zod compartilhados
-```
+## Visão Geral
 
-Yarn workspaces unem os pacotes. O Postgres do projeto Supabase é a fonte de verdade das tabelas de domínio (`profiles`, `tasks`, anexos metadados); Auth e Storage são serviços gerenciados do mesmo ecossistema.
+O ecossistema foi desenhado com uma clara separação de responsabilidades em três frentes principais que trabalham de forma integrada:
 
-## Decisões técnicas
 
-### Por que Supabase Auth (e não login na Nest)
+| **Camada**   | **Responsável**                     | **Papel no Sistema**                                                                                                                            |
+| ------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dados**    | Supabase Auth, Storage e PostgreSQL | Atua como a fundação de dados e identidade, gerenciando o ciclo de autenticação, o banco relacional e o armazenamento seguro de blobs.          |
+| **Backend**  | NestJS                              | Centraliza as regras de negócio, o controle de acesso baseado em papéis (RBAC), as operações de CRUD de tarefas e o gerenciamento de metadados. |
+| **Frontend** | Next.js & TanStack Query            | Fornece a interface do usuário (UI), gerencia a sessão ativa no navegador e orquestra o fluxo de uploads e requisições autenticadas.            |
 
-Autenticação é um problema resolvido: cadastro, sessão, refresh de token e logout têm requisitos de segurança altos e pouco valor diferencial neste desafio. O client usa o SDK do Supabase para todo o ciclo de auth e envia apenas o **access token** (Bearer) para a API. A Nest atua como *resource server*: valida o JWT via JWKS do projeto, resolve o `Profile` correspondente e aplica autorização. Assim a API não armazena senhas nem implementa fluxos de sessão.
 
-### Por que Postgres no Supabase + Prisma
+### Fluxo de Comunicação
 
-O domínio (perfil, papéis, tarefas, vínculos de anexos) precisa de modelo relacional e queries previsíveis. Usar o Postgres já acoplado ao Auth evita um segundo banco só para o app e permite que `Profile.id` seja o mesmo UUID de `auth.users`. O Prisma descreve o schema, gera o client tipado e isola o SQL do restante da Nest — útil com connection pooling (URL pooled em runtime vs. URL direta quando for necessário ferramenta de migração).
+A integração entre as pontas ocorre de maneira segura e desacoplada: o navegador interage diretamente com o **Supabase Auth** para autenticar o usuário e obter o token de acesso (`JWT`). Em seguida, o **Frontend (Next.js)** envia este *access token* via cabeçalho Bearer para a **API (NestJS)**.
 
-As migrations do repositório já estão aplicadas no banco serverless usado pelo projeto; quem for só subir a aplicação localmente **não precisa** rodar `migrate` de novo.
+O backend atua como um *resource server*, validando o token, resolvendo o perfil do usuário e aplicando rigorosamente as regras de autorização. Para arquivos e anexos, o fluxo é otimizado: os binários vão direto para o **Supabase Storage**, enquanto a API valida e controla estritamente as permissões de quem pode associar qual arquivo a uma tarefa específica.
 
-### Por que Supabase Storage
+---
 
-Avatares e anexos de tarefa são blobs. Guardá-los na API (disco ou base64 no Postgres) complicaria deploy, limites de payload e CDN. O Storage cobre upload/download com URL; a API e o client tratam **metadados e autorização de domínio** (quem pode associar um arquivo a qual tarefa), não o servidor de arquivos em si.
+## Como executar
 
-### Por que NestJS na API
+**Pré-requisitos:** Node.js ≥ 20 e Yarn 1.x, **ou** Docker Desktop / Compose.
 
-O desafio pede domínio com papéis, ownership e filtros — um lugar natural para DTOs validados, módulos por contexto (`auth`, `users`, `tasks`), guards e documentação OpenAPI. A Nest entrega essa estrutura sem reinventar o servidor HTTP. Regras sensíveis (ex.: `scope=all` só para `ADMIN`, ownership em update/delete) ficam no servidor; a UI só reflete permissões.
+As variáveis reais (Supabase, banco, etc.) **não** estão no Git. Elas serão enviadas **por e-mail** como arquivos `.env` prontos. Os `.env.example` do repositório só listam as chaves com placeholders.
 
-### Por que Next.js + TanStack Query no client
 
-App Router e client components cobrem as telas autenticadas (board, ajustes, usuários). O TanStack Query padroniza cache de perfil/tarefas, evita waterfall simples de `fetch` e facilita limpar estado no logout — importante para não “vazar” dados de uma conta para outra na mesma aba. Preferências (tema, contraste, formato de data) vivem no Profile e influenciam a UI; o client pode pré-visualizar alterações antes de persistir.
+| Ambiente | Arquivo            | Usado por                            |
+| -------- | ------------------ | ------------------------------------ |
+| Local    | `.env` na **raiz** | Backend                              |
+| Local    | `apps/client/.env` | Frontend                             |
+| Docker   | `.env` na **raiz** | Backend + build args `NEXT_PUBLIC_`* |
 
-### Por que shared-types e monorepo
 
-Filtros, preferências e shapes de resposta precisam bater entre client e API. Um pacote `@task-manager/shared-types` evita duplicar enums e DTOs em dois lugares. O monorepo mantém isso versionado junto com as apps.
+> Não existe `.env` em `apps/api`. A env da API é a da raiz do monorepo.
 
-### Papéis e escopo
+### Desenvolvimento local (`yarn:dev`)
 
-- `COMMON`: só as próprias tarefas.
-- `ADMIN`: pode listar todas (`GET /tasks?scope=all`), editar/excluir qualquer tarefa e alterar roles.
-- `scope` omisso ou `personal` sempre restringe ao usuário autenticado — inclusive para admin na aba “Minhas Tarefas”. A aba global no client é conveniência; a proteção real é o backend.
-
-## Como rodar (desenvolvimento local)
-
-Pré-requisitos: Node.js ≥ 20 e Yarn 1.x. O projeto Supabase (Auth, Postgres e Storage) deve estar acessível com as migrations já aplicadas.
-
-```bash
-cp .env.example .env
-cp apps/client/.env.example apps/client/.env
-```
-
-Preencha as variáveis apontando para o seu projeto Supabase e para a API local (`NEXT_PUBLIC_API_URL`, `API_PORT`, `CLIENT_PORT`, `FRONTEND_URL`, etc.). Os arquivos `.env.example` documentam cada chave.
+1. Coloque o `.env` do backend (e-mail) na **raiz** do projeto.
+2. Coloque o `.env` do frontend (e-mail) em `apps/client/.env`.
+3. Suba o monorepo:
 
 ```bash
 yarn install
-yarn:dev
+yarn dev
 ```
 
-- Client: [http://localhost:3000](http://localhost:3000)  
-- API: [http://localhost:3001](http://localhost:3001)  
-- Swagger: [http://localhost:3001/docs](http://localhost:3001/docs)
+
+| Serviço  | URL                                                      |
+| -------- | -------------------------------------------------------- |
+| Frontend | [http://localhost:3000](http://localhost:3000)           |
+| Backend  | [http://localhost:3001](http://localhost:3001)           |
+| Swagger  | [http://localhost:3001/docs](http://localhost:3001/docs) |
+
+
+### Docker Compose
+
+1. Coloque o `.env` da raiz (e-mail) na **raiz** do projeto.
+2. Suba os containers:
+
+```bash
+docker compose up --build -d
+```
+
+
+| Serviço  | Container             | URL                                                      |
+| -------- | --------------------- | -------------------------------------------------------- |
+| Frontend | `task-manager-client` | [http://localhost:3000](http://localhost:3000)           |
+| Backend  | `task-manager-api`    | [http://localhost:3001](http://localhost:3001)           |
+| Swagger  | `task-manager-api`    | [http://localhost:3001/docs](http://localhost:3001/docs) |
+
+
+Portas padrão: `CLIENT_PORT=3000`, `API_PORT=3001` (ajustáveis no `.env` da raiz).
 
 ### Contas de teste
 
@@ -77,46 +93,85 @@ yarn:dev
 | ADMIN  | `admin@test.com`  | `password@123` |
 
 
-## Docker
+---
 
-Ambiente local production-like (API Nest + client Next standalone). Postgres/Auth continuam no Supabase remoto via variáveis do `.env` na raiz.
+## Arquitetura (monorepo)
 
-```bash
-cp .env.example .env
-
-docker compose up --build -d
+```
+apps/client/           # Frontend — Next.js
+apps/api/              # Backend — NestJS + Prisma
+packages/shared-types/ # Contratos TypeScript / Zod compartilhados
 ```
 
-| Serviço | Container | URL |
-| ------- | --------- | --- |
-| Client | `task-manager-client` | [http://localhost:3000](http://localhost:3000) |
-| API | `task-manager-api` | [http://localhost:3001](http://localhost:3001) |
-| Swagger | `task-manager-api` | [http://localhost:3001/docs](http://localhost:3001/docs) |
+O ecossistema do projeto foi estruturado como um **Monorepo** gerenciado unificadamente via **Yarn Workspaces**, permitindo que aplicações independentes e pacotes compartilhados convivam no mesmo repositório com alta coesão e compartilhamento seguro de contratos.
 
-`NEXT_PUBLIC_API_URL` deve apontar para `http://localhost:${API_PORT}` (porta publicada no host), não para o hostname interno do Compose.
+```mermaid
+flowchart LR
+  browser[Browser]
+  frontend["Frontend Next.js"]
+  backend["Backend NestJS"]
+  auth[Supabase Auth]
+  db[Postgres]
+  storage[Supabase Storage]
+  browser --> frontend
+  frontend --> auth
+  frontend --> backend
+  frontend --> storage
+  backend --> auth
+  backend --> db
+  backend --> storage
+```
 
-Rebuilds reutilizam cache BuildKit do Yarn e do Next (`.next/cache`); a primeira build continua mais lenta, as seguintes bem mais rápidas se `package.json` / lockfile não mudarem.
 
-Para desenvolvimento com hot-reload, use o fluxo `yarn:dev` acima.
 
-## Uso de IA
+---
 
-Usei o Cursor de ponta a ponta, de forma deliberada e em ciclos curtos — não como “gerar o projeto de uma vez”.
+## Decisões técnicas
 
-1. **Planejamento.** No modo Plan, mando um prompt com as especificações técnicas do que preciso construir (escopo da feature, restrições de segurança, superfícies de API/UI). A IA devolve um plano estruturado.
-2. **Validação.** Eu leio o plano, corto o que está fora de escopo, corrijo premissas erradas e refin o desenho até ele refletir o que eu quero.
-3. **Implementação.** Só então peço para construir, seguindo o plano aprovado.
-4. **Review.** No modo Review, releio o código gerado: faz sentido com a arquitetura? vazou regra de negócio para o client? há atalho perigoso ou inconsistência de tipos? Ajusto ou peço correção quando algo não passa nessa revisão.
+### Supabase Auth
 
-A IA acelera exploração, rascunho e implementações repetitivas. As decisões de produto/arquitetura, o aceite do plano e a responsabilidade pelo que entra no repositório são minhas.
+Pelo Supabase Auth, a autenticação é um problema resolvido: cadastro, sessão, refresh de token e logout têm requisitos de segurança altos e pouco valor diferencial neste desafio. O client usa o SDK do Supabase para o ciclo de auth e envia apenas o access token (Bearer) para a API. A API atua como resource server: valida o JWT via JWKS, resolve o Profile e aplica autorização. A API não armazena senhas nem implementa sessão.
 
-## Vídeo
+No cadastro, a política de senha (OWASP: comprimento, maiúscula, minúscula, dígito e caractere especial) é validada na API antes do signUp. No client, um interceptor faz silent refresh com fila single-flight em caso de 401, evitando logout prematuro enquanto houver refresh_token válido.
 
-O vídeo de apresentação (máx. 7 minutos) será gravado e o link incluído aqui antes da entrega final.
+### Postgres (Supabase) + Prisma
 
-## Observações
+O domínio exige um modelo relacional forte e alta integridade de dados. A escolha pelo Postgres no ecossistema do Supabase evita a complexidade de gerenciar múltiplos serviços e permite que o `Profile.id` mapeie diretamente para o `auth.users` de forma nativa e segura. Para interagir com ele, escolhi o Prisma ORM por oferecer tipagem estrita de ponta a ponta e um modelo declarativo que isola o SQL cru, garantindo queries previsíveis. Além disso, o Prisma se encaixa perfeitamente na arquitetura ao suportar uma URL com connection pooling para o runtime da API e uma URL direta dedicada para migrations. Na prática, o modelo relacional é previsível e as migrations do repositório já vêm aplicadas no banco do projeto, garantindo que o ambiente suba pronto para uso.
 
-- A divisão auth (Supabase) / domínio (Nest) / UI (Next) é intencional: cada camada tem um motivo claro de existir.
-- Regras de papel e ownership foram pensadas para não depender de “esconder botão” no frontend.
-- A documentação de Docker descreve o fluxo `docker compose up --build -d` com containers `task-manager-api` e `task-manager-client`; o vídeo de apresentação ainda evolui.
+### Supabase Storage
 
+Avatares e anexos são blobs e guardá-los diretamente no banco relacional não é uma boa prática, pois incha o banco de dados, degrada a performance e complica os limites de payload. Para resolver isso, utilizei o Supabase Storage (que funciona por debaixo dos panos como um S3 da AWS) para assumir o upload e o download dos arquivos, enquanto a API e o client gerenciam apenas os metadados e as regras de autorização de cada arquivo. Como o Supabase fornece esse serviço de storage de forma gratuita e integrada, ele se encaixou perfeitamente para atender a este projeto de escopo menor sem adicionar complexidade extra de infraestrutura.
+
+### NestJS
+
+A escolha pelo NestJS deu-se pelo fato de ser um framework robusto em TypeScript que permite utilizar a mesma linguagem em todo o ecossistema e integrar perfeitamente com o monorepo via Yarn Workspaces, garantindo tipagem e contratos compartilhados de ponta a ponta. Além disso, por configurar diversos aspectos estruturais por baixo dos panos, como arquitetura modular por contexto (`auth`, `users`, `tasks`), validação rigorosa de DTOs, *guards* de segurança e documentação integrada, ele impacta positivamente na Experiência do Desenvolvedor (DX) e faz com que o trabalho flua de forma natural e organizada. Na prática, o framework atende perfeitamente às demandas de gerenciamento de papéis, *ownership* e filtros avançados. Isso significa que todas as regras sensíveis de negócio (como a restrição de `scope=all` exclusiva para ADMIN e a validação de que um usuário só pode alterar ou excluir as suas próprias tarefas) são aplicadas de forma segura e estrita diretamente no servidor, restando à interface do usuário apenas refletir essas permissões.
+
+### Next.js + TanStack Query
+
+A escolha pelo Next.js deu-se por ser um framework de frontend moderno e robusto que, alinhado ao uso do TypeScript no monorepo, compartilha da mesma base tecnológica da API, garantindo alta coesão no projeto. A escolha da arquitetura de App Router e de *client components* para cobrir as telas autenticadas trouxe uma estrutura altamente organizada, intuitiva e limpa de se ler. Para potencializar essa experiência, adicionei o TanStack Query para gerenciar o estado assíncrono, padronizar o cache de dados de perfil e tarefas, e simplificar a limpeza de estados. Na prática, essa combinação otimiza o cache, garante persistência eficiente e entrega uma Experiência do Usuário (UX) superior, enquanto preferências visuais e funcionais (como tema, contraste e formato de data) são centralizadas e persistidas diretamente no perfil do usuário.
+
+### Shared-types + monorepo
+
+A decisão de estruturar o projeto como um monorepo gerenciado via Yarn Workspaces deu-se pela necessidade de manter alta coesão e compartilhamento seguro de contratos entre o frontend e o backend. Para evitar a duplicação manual de enums, interfaces e DTOs — o que frequentemente gera inconsistências em filtros, preferências e shapes de resposta —, criei o pacote isolado `@task-manager/shared-types`. Na prática, essa abordagem garante tipagem estrita de ponta a ponta em todo o ecossistema, permitindo versionar os contratos de forma unificada junto com as aplicações e elevando drasticamente a manutenibilidade e a segurança do código.
+
+### Docker
+
+A escolha por conteinerizar a aplicação utilizando imagens Alpine com *multi-stage builds* (compilando o NestJS e utilizando o build *standalone* do Next.js) garante imagens finais extremamente enxutas, seguras e otimizadas. Essa abordagem foi adotada por ser uma excelente prática de engenharia que elimina definitivamente o clássico problema de "não funciona na minha máquina", garantindo total consistência e previsibilidade do ambiente. Na prática, o Docker Compose sobe de forma integrada os containers `task-manager-api` e `task-manager-client`, permitindo que a banca avaliadora reproduza todo o ecossistema localmente com um único comando, além de servir como uma base sólida e pronta para eventuais deploys futuros.
+
+---
+
+## Uso de Inteligência Artificial
+
+O uso de Inteligência Artificial ao longo do projeto foi uma ferramenta essencial para acelerar o desenvolvimento, mantendo sempre o rigor técnico sob meu controle. Utilizei o **Cursor** para o backend, novas features, testes, Docker e refinamentos, e o **v0** para a estruturação inicial da UI.
+
+O fluxo de trabalho seguiu uma abordagem estruturada: utilizei o modo de Planejamento do Cursor para desenhar o escopo técnico antes de cada implementação, e a partir do plano aprovado, pedi para construir o código base. Em seguida, fiz a revisão minuciosa de tudo o que foi gerado, ajustando funções manualmente sempre que necessário. No front-end, o projeto começou no v0 a partir de um prompt com referências visuais e diretrizes de interface globais, cujos arquivos foram baixados para o repositório e, a partir daí, seguiram o mesmo fluxo do Cursor aplicado na API. Os testes também foram gerados com auxílio de IA, mas todos os casos de teste e os resultados de execução foram rigorosamente conferidos por mim.
+
+Em suma, embora a maior parte do código tenha sido gerada com o apoio da inteligência artificial, as decisões de arquitetura e produto, o aceite do que entra de fato no repositório e a responsabilidade total pela solução funcional são minhas.
+
+---
+
+## Screencast
+
+Vídeo de demonstração do sistema e dos principais pontos da implementação:
+
+_[inserir link aqui]_

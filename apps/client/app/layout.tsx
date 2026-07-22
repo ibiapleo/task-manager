@@ -21,7 +21,10 @@ export const metadata: Metadata = {
   title: 'Prism — Task Manager',
   description:
     'Gerenciador de tarefas moderno com Kanban, arrastar e soltar e temas dinâmicos.',
-  generator: 'v0.app',
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+  },
 }
 
 export const viewport: Viewport = {

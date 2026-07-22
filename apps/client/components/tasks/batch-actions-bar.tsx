@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Check, Trash2 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass'
 import { PillSelect } from '@/components/ui/pill-select'
-import type { Priority, TaskStatus } from '@/lib/types'
+import type { Priority, TaskStatus } from '@/domain/types'
 import { cn } from '@/lib/utils'
 
 const STATUS_OPTIONS: { value: TaskStatus | ''; label: string }[] = [

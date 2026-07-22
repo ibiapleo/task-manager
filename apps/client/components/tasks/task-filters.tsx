@@ -10,8 +10,8 @@ import { useUsersQuery } from '@/hooks/use-users'
 import type {
   DuePreset,
   TaskSearchState,
-} from '@/lib/task-search-params'
-import type { Priority, TaskStatus } from '@/lib/types'
+} from '@/services/tasks/search-params'
+import type { Priority, TaskStatus } from '@/domain/types'
 import { cn } from '@/lib/utils'
 
 const STATUS_OPTIONS: { value: TaskStatus | 'ALL'; label: string }[] = [
@@ -43,7 +43,6 @@ interface TaskFiltersProps {
   state: TaskSearchState
   onChange: (patch: Partial<TaskSearchState>) => void
   onClear: () => void
-  /** Show owner autocomplete (ADMIN + scope=all). */
   showUserFilter?: boolean
 }
 

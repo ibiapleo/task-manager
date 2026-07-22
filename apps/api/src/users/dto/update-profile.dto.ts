@@ -25,7 +25,7 @@ export class UpdateProfileDto {
       'Public URL of the avatar image. The client uploads the file ' +
       'directly to Supabase Storage and only sends the resulting URL here.',
     example:
-      'https://vvwszzshoauxnvsgkden.supabase.co/storage/v1/object/public/avatars/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.png',
+      'https://vvwszzshoauxnvsgkden.supabase.co/storage/v1/object/public/profile-avatars/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb.png',
   })
   @IsOptional()
   @IsUrl()

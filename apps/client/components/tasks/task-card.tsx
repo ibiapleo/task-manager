@@ -23,8 +23,8 @@ import { useFormattedDate } from '@/hooks/use-formatted-date'
 import { useUpdateTask } from '@/hooks/use-tasks'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { UserAvatar } from '@/components/user-avatar'
-import type { Task } from '@/lib/types'
-import { PRIORITY_META, STATUS_META } from '@/lib/types'
+import type { Task } from '@/domain/types'
+import { PRIORITY_META, STATUS_META } from '@/domain/types'
 import { cn } from '@/lib/utils'
 
 const DESCRIPTION_LIMIT = 120

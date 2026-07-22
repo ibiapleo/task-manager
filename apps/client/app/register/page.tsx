@@ -108,7 +108,7 @@ export default function RegisterPage() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="voce@suaequipe.com"
+              placeholder="voce@seuemail.com"
               aria-invalid={!!errors.email}
               {...register('email')}
               className={cn(

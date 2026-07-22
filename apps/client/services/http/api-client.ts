@@ -1,5 +1,5 @@
-import { createEnsureFreshSession } from './auth-refresh'
-import { supabase } from './supabase-client'
+import { createEnsureFreshSession } from '@/services/auth/refresh'
+import { supabase } from '@/services/auth/supabase-client'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
@@ -114,11 +114,6 @@ async function request<T>(
   return payload as T
 }
 
-/**
- * Thin, typed Fetch API wrapper shared by every hook in the app. Centralizes
- * auth header injection, silent token refresh on 401, and NestJS error-body
- * parsing so hooks/components never touch `fetch` directly.
- */
 export const apiClient = {
   get: <T>(path: string, options?: RequestOptions) =>
     request<T>('GET', path, undefined, options),

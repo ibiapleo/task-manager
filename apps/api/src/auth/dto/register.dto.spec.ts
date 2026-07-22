@@ -5,7 +5,7 @@ import { RegisterDto } from './register.dto';
 describe('RegisterDto', () => {
   async function errorsFor(password: string) {
     const dto = plainToInstance(RegisterDto, {
-      email: 'voce@suaequipe.com',
+      email: 'voce@seuemail.com',
       password,
     });
     return validate(dto);

@@ -18,7 +18,7 @@ import {
 export class RegisterDto {
   @ApiProperty({
     description: 'Account e-mail address.',
-    example: 'voce@suaequipe.com',
+    example: 'voce@seuemail.com',
   })
   @IsEmail({}, { message: 'E-mail inválido.' })
   @IsNotEmpty({ message: 'Informe seu e-mail.' })
@@ -26,9 +26,10 @@ export class RegisterDto {
 
   @ApiProperty({
     description:
-      'Password meeting OWASP-aligned complexity (min 8, upper, lower, digit, special).',
+      'Password meeting OWASP-aligned complexity (min 8, max 128, upper, lower, digit, special).',
     example: 'Senha@Forte1',
     minLength: PASSWORD_MIN_LENGTH,
+    maxLength: 128,
   })
   @IsString()
   @IsNotEmpty({ message: 'Informe uma senha.' })

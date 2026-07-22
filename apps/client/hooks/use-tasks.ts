@@ -12,11 +12,10 @@ import type {
   UpdateTasksBatchInput,
   UpdateTasksBatchResponse,
 } from '@task-manager/shared-types'
-import { apiClient } from '@/lib/api-client'
+import { apiClient } from '@/services/http/api-client'
 import { useProfile } from '@/hooks/use-profile'
-import { queryKeys } from '@/lib/query-keys'
+import { queryKeys } from '@/services/query/keys'
 
-/** Listing scope is enforced server-side (scope=all requires ADMIN). */
 export function useTasksQuery(filters: TaskFilterInput = {}) {
   return useQuery({
     queryKey: queryKeys.tasks.list(filters),
@@ -49,9 +48,6 @@ export function useCreateTask() {
         PaginatedResult<TaskResponse>
       >({ queryKey: queryKeys.tasks.all() })
 
-      // Placeholder row shown instantly while the real POST is in flight -
-      // replaced by the server's version once onSuccess invalidates the
-      // list (or rolled back entirely on error).
       const now = new Date().toISOString()
       const optimisticTask: TaskResponse = {
         id: `optimistic-${crypto.randomUUID()}`,
@@ -104,9 +100,6 @@ export function useUpdateTask() {
     mutationFn: ({ id, patch }: { id: string; patch: UpdateTaskInput }) =>
       apiClient.patch<TaskResponse>(`/tasks/${id}`, patch),
     onMutate: async ({ id, patch }) => {
-      // Cancel in-flight task list fetches so a stale response can't land
-      // after this optimistic write and undo it (same class of race fixed
-      // in useUpdateProfile).
       await queryClient.cancelQueries({ queryKey: queryKeys.tasks.all() })
 
       const previousLists = queryClient.getQueriesData<
@@ -123,7 +116,6 @@ export function useUpdateTask() {
             const next: TaskResponse = {
               ...task,
               ...scalarPatch,
-              // Prefer explicit nullish clears from the patch over stale values.
               description:
                 scalarPatch.description !== undefined
                   ? scalarPatch.description || null

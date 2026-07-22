@@ -14,18 +14,21 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+const ATTACHMENT_URL_EXAMPLE =
+  'https://vvwszzshoauxnvsgkden.supabase.co/storage/v1/object/public/tasks/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/dddddddd-dddd-dddd-dddd-dddddddddddd.pdf';
+
 export class AttachmentInputDto {
   @ApiProperty({
-    description: 'Public URL of the file in Supabase Storage.',
-    example:
-      'https://project.supabase.co/storage/v1/object/public/tasks/user-id/1710000000000-spec.pdf',
+    description: 'Public URL of the file in Supabase Storage (bucket: tasks).',
+    example: ATTACHMENT_URL_EXAMPLE,
   })
   @IsUrl()
   url: string;
 
   @ApiProperty({
-    description: 'Original filename as sent by the user (for display/download).',
-    example: 'spec.pdf',
+    description:
+      'Original filename as sent by the user (for display/download).',
+    example: 'especificacao.pdf',
     maxLength: 255,
   })
   @IsString()
@@ -37,7 +40,7 @@ export class AttachmentInputDto {
 export class CreateTaskDto {
   @ApiProperty({
     description: 'Task title.',
-    example: 'Write the project documentation',
+    example: 'Escrever a documentação do projeto',
     maxLength: 120,
   })
   @IsString()
@@ -47,7 +50,7 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional({
     description: 'Detailed task description.',
-    example: 'Cover installation, configuration and usage sections.',
+    example: 'Cobrir instalação, configuração e uso.',
   })
   @IsOptional()
   @IsString()
@@ -84,12 +87,13 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional({
     description:
-      'Attachments already uploaded to Supabase Storage (URL + original filename).',
+      'Attachments already uploaded to Supabase Storage (URL + original filename). ' +
+      'Object keys use {profileId}/{uuid}.ext.',
     type: [AttachmentInputDto],
     example: [
       {
-        url: 'https://project.supabase.co/storage/v1/object/public/tasks/user-id/1710000000000-spec.pdf',
-        originalName: 'spec.pdf',
+        url: ATTACHMENT_URL_EXAMPLE,
+        originalName: 'especificacao.pdf',
       },
     ],
   })

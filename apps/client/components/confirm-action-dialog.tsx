@@ -13,7 +13,6 @@ interface ConfirmActionDialogProps {
   confirmLabel?: string
   cancelLabel?: string
   variant?: 'default' | 'destructive'
-  /** Ação assíncrona. O spinner é exibido até resolver. */
   onConfirm: () => void | Promise<void>
 }
 
@@ -36,7 +35,6 @@ export function ConfirmActionDialog({
       if (e.key === 'Escape' && !loading) onOpenChange(false)
     }
     document.addEventListener('keydown', onKey)
-    // foco inicial no botão de confirmação
     const id = requestAnimationFrame(() => confirmRef.current?.focus())
     return () => {
       document.removeEventListener('keydown', onKey)

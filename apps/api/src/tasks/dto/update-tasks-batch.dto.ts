@@ -16,9 +16,7 @@ import {
 } from 'class-validator';
 
 @ValidatorConstraint({ name: 'atLeastOneBatchField', async: false })
-export class AtLeastOneBatchFieldConstraint
-  implements ValidatorConstraintInterface
-{
+export class AtLeastOneBatchFieldConstraint implements ValidatorConstraintInterface {
   validate(_: unknown, args: ValidationArguments): boolean {
     const dto = args.object as UpdateTasksBatchDto;
     return (
@@ -35,7 +33,9 @@ export class AtLeastOneBatchFieldConstraint
 
 export class UpdateTasksBatchDto {
   @ApiProperty({
-    description: 'Task UUIDs to update (1–100).',
+    description:
+      'Task UUIDs to update (1–100). At least one of status, priority, or ' +
+      'dueDate must also be provided on the body.',
     type: [String],
     minItems: 1,
     maxItems: 100,
@@ -52,6 +52,7 @@ export class UpdateTasksBatchDto {
   @ApiPropertyOptional({
     description: 'Status applied to every selected task.',
     enum: TaskStatus,
+    example: TaskStatus.IN_PROGRESS,
   })
   @IsOptional()
   @IsEnum(TaskStatus)
@@ -60,6 +61,7 @@ export class UpdateTasksBatchDto {
   @ApiPropertyOptional({
     description: 'Priority applied to every selected task.',
     enum: Priority,
+    example: Priority.HIGH,
   })
   @IsOptional()
   @IsEnum(Priority)

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createEnsureFreshSession } from './auth-refresh'
+import { createEnsureFreshSession } from './refresh'
 
 function deferred<T>() {
   let resolve!: (value: T) => void

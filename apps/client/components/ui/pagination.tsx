@@ -16,7 +16,6 @@ interface PaginationProps {
   page: number
   totalPages: number
   total?: number
-  /** Singular label for the total line (e.g. "tarefa", "usuário"). */
   itemLabel: string
   onPageChange: (page: number) => void
   className?: string

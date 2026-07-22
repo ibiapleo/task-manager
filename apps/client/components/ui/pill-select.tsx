@@ -16,7 +16,6 @@ interface PillSelectProps<T extends string> {
   onChange: (value: T) => void
   label?: string
   className?: string
-  /** Where the menu opens relative to the trigger. Default: bottom. */
   placement?: 'top' | 'bottom'
 }
 
@@ -45,10 +44,6 @@ export function PillSelect<T extends string>({
 
   const selected = options.find((o) => o.value === value)
 
-  // The menu renders in a portal (see below) so it can never be clipped by
-  // an `overflow-hidden` ancestor (e.g. the GlassCard wrapping the Users
-  // list) - a z-index alone cannot fix that, only escaping the ancestor's
-  // box via a portal + fixed positioning can.
   function updateMenuRect() {
     const rect = triggerRef.current?.getBoundingClientRect()
     if (!rect) return

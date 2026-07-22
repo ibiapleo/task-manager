@@ -44,9 +44,9 @@ async function bootstrap(): Promise<void> {
   );
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Task Manager API')
+    .setTitle('Prism - Task Manager API')
     .setDescription(
-      'REST API for the Task Manager backend. Authentication is handled by Supabase; send the access token as a Bearer token.',
+      'Authentication is handled by Supabase; send the access token as a Bearer token.',
     )
     .setVersion('1.0')
     .addBearerAuth(
@@ -62,7 +62,10 @@ async function bootstrap(): Promise<void> {
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document, {
-    swaggerOptions: { persistAuthorization: true },
+    swaggerOptions: {
+      persistAuthorization: true,
+      operationsSorter: 'method',
+    },
   });
 
   const port = configService.get<number>('API_PORT', 3001);

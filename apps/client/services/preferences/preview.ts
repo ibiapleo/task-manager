@@ -1,5 +1,5 @@
 import type { AccessibilityPreferences } from '@task-manager/shared-types'
-import type { ThemeName } from '@/lib/types'
+import type { ThemeName } from '@/domain/types'
 
 /**
  * Single source of truth for "how a theme gets written to the DOM" - used

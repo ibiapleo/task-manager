@@ -1,9 +1,8 @@
 'use client'
 
 import { usePermissions } from '@/hooks/use-permissions'
-import type { Role } from '@/lib/types'
+import type { Role } from '@/domain/types'
 
-/** Renders children only if the current profile has the required role (default: ADMIN). */
 export function AdminOnly({
   children,
   role = 'ADMIN',

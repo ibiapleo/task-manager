@@ -468,8 +468,8 @@ describe('TasksService', () => {
 
   describe('findAll', () => {
     beforeEach(() => {
-      prisma.$transaction.mockImplementation(
-        (operations: Promise<unknown>[]) => Promise.all(operations),
+      prisma.$transaction.mockImplementation((operations: Promise<unknown>[]) =>
+        Promise.all(operations),
       );
       prisma.task.findMany.mockResolvedValue([]);
       prisma.task.count.mockResolvedValue(0);

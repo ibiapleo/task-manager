@@ -10,12 +10,6 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-/**
- * Renders the selected `react-easy-crop` area of `imageSrc` onto an
- * offscreen canvas and resolves a JPEG `Blob` of just that region - used
- * both for the crop dialog's live "final result" preview and for producing
- * the file that eventually gets uploaded (see components/avatar-crop-dialog.tsx).
- */
 export async function getCroppedImageBlob(
   imageSrc: string,
   area: Area,

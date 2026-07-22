@@ -16,7 +16,7 @@ import {
   toTaskFilterInput,
   type TaskScope,
   type TaskSearchState,
-} from '@/lib/task-search-params'
+} from '@/services/tasks/search-params'
 import { cn } from '@/lib/utils'
 
 function TasksPageContent() {
@@ -32,7 +32,6 @@ function TasksPageContent() {
     [searchParams],
   )
 
-  // COMMON never gets the global board — strip scope=all from a shared URL.
   const state = useMemo<TaskSearchState>(() => {
     if (!isAdmin && parsed.scope === 'all') {
       return { ...parsed, scope: 'personal' }
@@ -71,7 +70,6 @@ function TasksPageContent() {
   const setScope = useCallback(
     (scope: TaskScope) => {
       if (scope === state.scope) return
-      // Reset filters when switching boards; keep list/kanban layout preference.
       replaceState({
         ...DEFAULT_TASK_SEARCH,
         view: state.view,

@@ -24,7 +24,6 @@ interface UserAvatarProps {
   className?: string
 }
 
-/** Shows the profile's avatarUrl (uploaded client-side to Supabase Storage), falling back to initials. */
 export function UserAvatar({
   profile,
   size = 'md',

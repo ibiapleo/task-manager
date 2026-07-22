@@ -51,7 +51,7 @@ describe('AuthService', () => {
     });
 
     const result = await service.register({
-      email: 'voce@suaequipe.com',
+      email: 'voce@seuemail.com',
       password: 'Senha@Forte1',
     });
 
@@ -71,7 +71,7 @@ describe('AuthService', () => {
     });
 
     const result = await service.register({
-      email: 'voce@suaequipe.com',
+      email: 'voce@seuemail.com',
       password: 'Senha@Forte1',
     });
 
@@ -89,7 +89,7 @@ describe('AuthService', () => {
 
     await expect(
       service.register({
-        email: 'voce@suaequipe.com',
+        email: 'voce@seuemail.com',
         password: 'Senha@Forte1',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);

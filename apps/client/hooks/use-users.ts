@@ -7,10 +7,9 @@ import type {
   Role,
   UserFilterInput,
 } from '@task-manager/shared-types'
-import { apiClient } from '@/lib/api-client'
-import { queryKeys } from '@/lib/query-keys'
+import { apiClient } from '@/services/http/api-client'
+import { queryKeys } from '@/services/query/keys'
 
-/** Admin-only, paginated user list (see UsersController.findAll). */
 export function useUsersQuery(
   filters: UserFilterInput = {},
   options?: { enabled?: boolean },

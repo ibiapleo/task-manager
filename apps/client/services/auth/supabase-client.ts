@@ -11,17 +11,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-/**
- * Single browser Supabase client for the whole app. The frontend owns the
- * entire auth lifecycle (sign up, sign in, session refresh, sign out) per
- * the system architecture - the API is a pure resource server that only
- * ever sees the resulting access token as a Bearer header.
- *
- * Session persistence uses the SDK's own storage (localStorage by default)
- * with automatic refresh-token rotation (`autoRefreshToken` + `persistSession`).
- * The api-client interceptor complements those timers: on 401 it runs a
- * single-flight `refreshSession` and retries the request before forcing logout.
- */
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,

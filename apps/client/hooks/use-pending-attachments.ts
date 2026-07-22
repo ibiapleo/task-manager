@@ -7,12 +7,6 @@ export interface PendingAttachment {
   previewUrl: string
 }
 
-/**
- * Tracks files picked locally but not yet uploaded to Supabase Storage,
- * together with their `URL.createObjectURL` preview. Guarantees every blob
- * URL handed out eventually gets revoked - on removal, on reset (dialog
- * closed/reopened, submit finished) and on unmount - so previews never leak.
- */
 export function usePendingAttachments() {
   const [pending, setPending] = useState<PendingAttachment[]>([])
   const pendingRef = useRef(pending)

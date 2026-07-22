@@ -15,7 +15,7 @@ import {
   attachmentKindMeta,
   canAttemptTextPreview,
   type AttachmentPreviewKind,
-} from '@/lib/attachment'
+} from '@/services/tasks/attachment'
 import { GlassCard } from '@/components/ui/glass'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { cn } from '@/lib/utils'
@@ -332,12 +332,6 @@ function MarkdownPreviewPanel({ item }: { item: LightboxAttachment }) {
   )
 }
 
-/**
- * Immersive attachment viewer rendered above the task details modal
- * (z-[100] portal). Independent open state — closing it never closes the
- * parent details form. PDFs use a lazy iframe mounted only while viewing
- * a PDF item.
- */
 export function AttachmentLightbox({
   items,
   index,
@@ -567,7 +561,6 @@ export function AttachmentLightbox({
   )
 }
 
-/** Colored icon used when a gallery tile is not an image thumbnail. */
 export function AttachmentKindIcon({
   kind,
   className,

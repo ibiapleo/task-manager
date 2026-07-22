@@ -1,19 +1,13 @@
-import { supabase } from '@/lib/supabase-client'
+import { supabase } from '@/services/auth/supabase-client'
 
-/** Actual bucket names configured in the Supabase project - keep in sync with the dashboard. */
 export const STORAGE_BUCKETS = {
   avatars: 'profile-avatars',
   tasks: 'tasks',
 } as const
 
-/**
- * Result of a task attachment upload. The storage object key is an opaque
- * UUID (Supabase rejects many unicode characters in keys). The exact
- * user-facing filename is carried separately as `originalName`.
- */
+
 export interface UploadedAttachment {
   url: string
-  /** Exact `File.name` as picked by the user — accents and punctuation preserved. */
   originalName: string
 }
 
@@ -24,14 +18,6 @@ function buildObjectKey(pathPrefix: string, file: File): string {
   return `${pathPrefix}/${crypto.randomUUID()}${safeExt}`
 }
 
-/**
- * Uploads a single file straight from the browser to Supabase Storage and
- * returns its public URL. The object key is always a UUID (+ safe extension)
- * so Supabase never rejects the key for special characters in the real name.
- *
- * Callers that need the display name should keep `file.name` themselves
- * (see `uploadTaskAttachments`).
- */
 export async function uploadFile(
   bucket: string,
   pathPrefix: string,
@@ -49,10 +35,6 @@ export async function uploadFile(
   return data.publicUrl
 }
 
-/**
- * Uploads task attachments in parallel. Returns public URLs paired with the
- * exact original filenames for API persistence and UI display.
- */
 export async function uploadTaskAttachments(
   bucket: string,
   pathPrefix: string,

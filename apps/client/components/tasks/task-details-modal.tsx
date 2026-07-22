@@ -19,9 +19,9 @@ import { useFormattedDate } from '@/hooks/use-formatted-date'
 import { GlassCard } from '@/components/ui/glass'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { PillSelect } from '@/components/ui/pill-select'
-import { STORAGE_BUCKETS, uploadTaskAttachments } from '@/lib/storage'
-import type { Priority, TaskStatus } from '@/lib/types'
-import { STATUS_META } from '@/lib/types'
+import { STORAGE_BUCKETS, uploadTaskAttachments } from '@/services/storage/storage'
+import type { Priority, TaskStatus } from '@/domain/types'
+import { STATUS_META } from '@/domain/types'
 import { cn } from '@/lib/utils'
 import { UserAvatar } from '@/components/user-avatar'
 
@@ -57,11 +57,6 @@ function toFormValues(task: TaskResponse): UpdateTaskInput {
   }
 }
 
-/**
- * Wide Jira-style details / edit modal. Distinct from AddTaskDialog (create
- * only). Attachments stay local until "Salvar" — then upload to
- * STORAGE_BUCKETS.tasks and PATCH.
- */
 export function TaskDetailsModal({
   task,
   onOpenChange,

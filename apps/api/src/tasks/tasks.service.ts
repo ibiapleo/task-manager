@@ -90,9 +90,7 @@ export class TasksService {
     } = filter;
 
     if (scope === 'all' && user.role !== Role.ADMIN) {
-      throw new ForbiddenException(
-        'Only administrators can list all tasks.',
-      );
+      throw new ForbiddenException('Only administrators can list all tasks.');
     }
 
     const dueDateFilter = this.buildDueDateFilter(
@@ -103,9 +101,7 @@ export class TasksService {
 
     const where: Prisma.TaskWhereInput = {
       ...(scope === 'all' ? {} : { profileId: user.id }),
-      ...(scope === 'all' &&
-      user.role === Role.ADMIN &&
-      profileId
+      ...(scope === 'all' && user.role === Role.ADMIN && profileId
         ? { profileId }
         : {}),
       ...(status ? { status } : {}),
@@ -276,9 +272,7 @@ export class TasksService {
     });
 
     if (found.length !== uniqueIds.length) {
-      throw new NotFoundException(
-        'One or more tasks were not found.',
-      );
+      throw new NotFoundException('One or more tasks were not found.');
     }
 
     if (user.role !== Role.ADMIN) {
