@@ -25,8 +25,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isPublic = PUBLIC_ROUTES.includes(pathname)
   const sessionUserId = session?.user?.id
-  // Wait for /auth/me so navbar / greeting / preferences never flash the
-  // previous account while the new session's profile is still in flight.
   const profileReady =
     !!profile &&
     !!sessionUserId &&
@@ -46,7 +44,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <FullScreenLoader />
   }
 
-  // Enquanto o redirecionamento acontece, evita piscar conteúdo protegido/público.
   if ((!isAuthenticated && !isPublic) || (isAuthenticated && isPublic)) {
     return <FullScreenLoader />
   }
@@ -55,8 +52,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <main className="min-h-dvh">{children}</main>
   }
 
-  // Do not paint navbar/tasks until GET /auth/me matches this session —
-  // otherwise a previous account can flash for the duration of the refetch.
   if (!profileReady) {
     return <FullScreenLoader />
   }

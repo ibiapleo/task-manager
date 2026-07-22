@@ -15,11 +15,6 @@ interface IconTooltipProps {
   children: ReactElement
 }
 
-/**
- * Standard accessible tooltip for isolated icon controls.
- * Uses Base UI TooltipTrigger `render` so the child stays the focusable
- * element (no extra wrapper that would break drag/stopPropagation).
- */
 export function IconTooltip({
   label,
   side = 'top',
