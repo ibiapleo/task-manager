@@ -174,4 +174,4 @@ Em suma, embora a maior parte do código tenha sido gerada com o apoio da inteli
 
 Vídeo de demonstração do sistema e dos principais pontos da implementação:
 
-_[inserir link aqui]_
+https://www.youtube.com/watch?v=hQgb2AiTJW0
