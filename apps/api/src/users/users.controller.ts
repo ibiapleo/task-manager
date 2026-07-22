@@ -21,6 +21,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { SupabaseAuthGuard } from '../auth/guards/supabase-auth.guard';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { PaginatedProfilesDto } from './dto/paginated-profiles.dto';
+import { ProfileResponseDto } from './dto/profile-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UserFilterDto } from './dto/user-filter.dto';
@@ -54,7 +56,11 @@ export class UsersController {
       'uploaded client-side) and preferences. Preferences are merged: only ' +
       'the provided fields are changed.',
   })
-  @ApiResponse({ status: 200, description: 'Profile updated successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile updated successfully.',
+    type: ProfileResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Validation error in the request body.',
@@ -63,6 +69,7 @@ export class UsersController {
     status: 401,
     description: 'Missing, invalid or expired access token.',
   })
+  @ApiResponse({ status: 404, description: 'Profile not found.' })
   updateMe(
     @Body() updateProfileDto: UpdateProfileDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -76,10 +83,15 @@ export class UsersController {
   @ApiOperation({
     summary: 'List users',
     description:
-      'Paginated list of every profile (query: page, limit). Restricted to ADMIN. ' +
+      'Paginated list of every profile (query: page, limit, search). ' +
+      'search filters by name or email. Restricted to ADMIN. ' +
       'Response includes meta: page, limit, total, totalPages.',
   })
-  @ApiResponse({ status: 200, description: 'Paginated list of users.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of users.',
+    type: PaginatedProfilesDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid query parameters.' })
   @ApiResponse({
     status: 401,
@@ -102,7 +114,11 @@ export class UsersController {
     description:
       'Switches a user between COMMON and ADMIN. Restricted to ADMIN.',
   })
-  @ApiResponse({ status: 200, description: 'Role updated successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Role updated successfully.',
+    type: ProfileResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Validation error in the request body, or invalid UUID.',

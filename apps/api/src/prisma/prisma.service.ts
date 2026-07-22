@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 /**
@@ -30,7 +35,9 @@ export class PrismaService
     try {
       await this.$connect();
       if (attempt > 1) {
-        this.logger.log(`Database connection established on attempt ${attempt}.`);
+        this.logger.log(
+          `Database connection established on attempt ${attempt}.`,
+        );
       }
     } catch (error) {
       if (attempt >= PrismaService.MAX_CONNECT_ATTEMPTS) {

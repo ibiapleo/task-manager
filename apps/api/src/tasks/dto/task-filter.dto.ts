@@ -22,7 +22,7 @@ export type TaskScope = 'personal' | 'all';
 export class TaskFilterDto {
   @ApiPropertyOptional({
     description:
-      'personal (default): only the caller\'s tasks. all: every task ' +
+      "personal (default): only the caller's tasks. all: every task " +
       '(ADMIN only; COMMON receives 403).',
     enum: ['personal', 'all'],
     default: 'personal',
@@ -52,7 +52,7 @@ export class TaskFilterDto {
 
   @ApiPropertyOptional({
     description: 'Free-text search over title and description.',
-    example: 'documentation',
+    example: 'documentação',
   })
   @IsOptional()
   @IsString()

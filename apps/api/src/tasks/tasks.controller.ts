@@ -23,9 +23,17 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { SupabaseAuthGuard } from '../auth/guards/supabase-auth.guard';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import {
+  BatchDeleteResultDto,
+  BatchUpdateResultDto,
+  DeleteTaskResultDto,
+} from './dto/batch-result.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { DeleteTasksBatchDto } from './dto/delete-tasks-batch.dto';
+import { PaginatedTasksDto } from './dto/paginated-tasks.dto';
 import { TaskFilterDto } from './dto/task-filter.dto';
+import { TaskResponseDto } from './dto/task-response.dto';
+import { TaskStatusSummaryDto } from './dto/task-status-summary.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { UpdateTasksBatchDto } from './dto/update-tasks-batch.dto';
 import { TasksService } from './tasks.service';
@@ -54,7 +62,11 @@ export class TasksController {
       'Optionally accepts attachments already uploaded to Supabase Storage ' +
       '(each with a public URL and the original filename).',
   })
-  @ApiResponse({ status: 201, description: 'Task created successfully.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Task created successfully.',
+    type: TaskResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Validation error in the request body.',
@@ -74,12 +86,17 @@ export class TasksController {
   @ApiOperation({
     summary: 'List tasks',
     description:
-      'Defaults to scope=personal (caller\'s tasks only). ADMIN may pass ' +
-      'scope=all to list every task; COMMON requesting scope=all gets 403. ' +
-      'Supports filtering by status/priority, free-text search over ' +
-      'title/description, sorting and pagination.',
+      "Defaults to scope=personal (caller's tasks only). ADMIN may pass " +
+      'scope=all to list every task (optionally filtered by profileId); ' +
+      'COMMON requesting scope=all gets 403. Supports filtering by ' +
+      'status/priority, free-text search over title/description, dueAfter/' +
+      'dueBefore, unscheduled (no dueDate), sorting and pagination.',
   })
-  @ApiResponse({ status: 200, description: 'Paginated list of tasks.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of tasks.',
+    type: PaginatedTasksDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid query parameters.' })
   @ApiResponse({
     status: 401,
@@ -107,6 +124,7 @@ export class TasksController {
   @ApiResponse({
     status: 200,
     description: 'Task counts grouped by status.',
+    type: TaskStatusSummaryDto,
   })
   @ApiResponse({
     status: 401,
@@ -127,7 +145,11 @@ export class TasksController {
     description:
       'COMMON users may only fetch tasks they own; ADMIN can fetch any task.',
   })
-  @ApiResponse({ status: 200, description: 'Task found.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task found.',
+    type: TaskResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'The id is not a valid UUID.' })
   @ApiResponse({
     status: 401,
@@ -154,7 +176,11 @@ export class TasksController {
       'by the authenticated user with status PENDING. Attachments are not copied. ' +
       'COMMON users may only duplicate tasks they own; ADMIN may duplicate any task.',
   })
-  @ApiResponse({ status: 201, description: 'Task duplicated successfully.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Task duplicated successfully.',
+    type: TaskResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'The id is not a valid UUID.' })
   @ApiResponse({
     status: 401,
@@ -177,13 +203,20 @@ export class TasksController {
     summary: 'Update multiple tasks',
     description:
       'Applies the same status, priority and/or dueDate patch to up to 100 ' +
-      'tasks. COMMON users may only update tasks they own; ADMIN may update ' +
-      'any of the given tasks. Fails entirely if any id is missing or forbidden.',
+      'tasks. At least one of status, priority, or dueDate must be provided. ' +
+      'COMMON users may only update tasks they own; ADMIN may update any of ' +
+      'the given tasks. Fails entirely if any id is missing or forbidden.',
   })
-  @ApiResponse({ status: 200, description: 'Tasks updated successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tasks updated successfully.',
+    type: BatchUpdateResultDto,
+  })
   @ApiResponse({
     status: 400,
-    description: 'Validation error in the request body.',
+    description:
+      'Validation error in the request body (including when none of ' +
+      'status, priority, or dueDate is provided).',
   })
   @ApiResponse({
     status: 401,
@@ -202,7 +235,11 @@ export class TasksController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     const { ids, status, priority, dueDate } = dto;
-    return this.tasksService.updateMany(ids, { status, priority, dueDate }, user);
+    return this.tasksService.updateMany(
+      ids,
+      { status, priority, dueDate },
+      user,
+    );
   }
 
   @Patch(':id')
@@ -211,9 +248,15 @@ export class TasksController {
     summary: 'Update a task',
     description:
       'Partial update. COMMON users may only update tasks they own; ADMIN ' +
-      'can update any task. Sending "attachments" replaces the existing set entirely.',
+      'can update any task. Sending "attachments" replaces the existing set ' +
+      'entirely. Omitting dueDate or sending a non-truthy value does not ' +
+      'clear an existing due date to null.',
   })
-  @ApiResponse({ status: 200, description: 'Task updated successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task updated successfully.',
+    type: TaskResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Validation error in the request body, or invalid UUID.',
@@ -243,7 +286,11 @@ export class TasksController {
       'delete tasks they own; ADMIN may delete any of the given tasks. ' +
       'Fails entirely if any id is missing or forbidden.',
   })
-  @ApiResponse({ status: 200, description: 'Tasks deleted successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tasks deleted successfully.',
+    type: BatchDeleteResultDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Validation error in the request body.',
@@ -275,7 +322,11 @@ export class TasksController {
       'COMMON users may only delete tasks they own; ADMIN can delete any ' +
       'task. Attachments are removed automatically (cascade).',
   })
-  @ApiResponse({ status: 200, description: 'Task deleted successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task deleted successfully.',
+    type: DeleteTaskResultDto,
+  })
   @ApiResponse({ status: 400, description: 'The id is not a valid UUID.' })
   @ApiResponse({
     status: 401,
