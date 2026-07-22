@@ -32,7 +32,7 @@ import { TaskCard } from '@/components/tasks/task-card'
 import { TaskDetailsModal } from '@/components/tasks/task-details-modal'
 import { Pagination } from '@/components/ui/pagination'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
-import type { Priority, Task, TaskStatus } from '@/lib/types'
+import type { Priority, Task, TaskStatus } from '@/domain/types'
 
 const STATUSES: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED']
 

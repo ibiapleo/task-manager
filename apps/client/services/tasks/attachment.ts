@@ -102,12 +102,10 @@ export function resolvePreviewKind(
   return fromExt ?? 'other'
 }
 
-/** Types with a rich in-app lightbox preview (gallery hint “Clique para visualizar”). */
 export function isLightboxPreviewable(kind: AttachmentPreviewKind): boolean {
   return kind === 'image' || kind === 'pdf' || kind === 'markdown'
 }
 
-/** Types that may attempt a plain-text preview fetch in the lightbox. */
 export function canAttemptTextPreview(
   kind: AttachmentPreviewKind,
   nameOrUrl: string,

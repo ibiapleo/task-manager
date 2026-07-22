@@ -2,17 +2,8 @@
 
 import { useEffect } from 'react'
 import { useProfile } from '@/hooks/use-profile'
-import { applyAccessibilityPreview } from '@/lib/preview-preferences'
+import { applyAccessibilityPreview } from '@/services/preferences/preview'
 
-/**
- * Applies the authenticated profile's accessibility preferences to the
- * document so every page benefits without threading props around: a
- * `data-high-contrast` attribute plus a literal `.high-contrast` class
- * (both read by app/globals.css - the class exists so anything that
- * specifically targets `.high-contrast` keeps working) and a
- * `--font-size-multiplier` CSS variable that scales the whole app's
- * rem-based type scale.
- */
 export function AccessibilityEffects() {
   const { data: profile } = useProfile()
 

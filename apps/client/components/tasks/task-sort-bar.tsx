@@ -2,7 +2,7 @@
 
 import { ArrowDownUp } from 'lucide-react'
 import { PillSelect } from '@/components/ui/pill-select'
-import type { SortOrder, TaskSearchState, TaskSortField } from '@/lib/task-search-params'
+import type { SortOrder, TaskSearchState, TaskSortField } from '@/services/tasks/search-params'
 
 type SortKey = `${TaskSortField}:${SortOrder}`
 

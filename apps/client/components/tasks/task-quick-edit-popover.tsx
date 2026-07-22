@@ -21,9 +21,9 @@ import {
   dateFormatPlaceholder,
   formatDate,
   parseDateInput,
-} from '@/lib/format-date'
-import type { Priority, Task, TaskStatus } from '@/lib/types'
-import { PRIORITY_META, STATUS_META } from '@/lib/types'
+} from '@/services/date/format-date'
+import type { Priority, Task, TaskStatus } from '@/domain/types'
+import { PRIORITY_META, STATUS_META } from '@/domain/types'
 import { cn } from '@/lib/utils'
 
 const STATUS_OPTIONS: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED']
@@ -160,7 +160,6 @@ interface BadgeEditorProps {
   task: Task
 }
 
-/** Status pill — click opens the other status options (Jira-style). */
 export function TaskStatusBadge({ task }: BadgeEditorProps) {
   const { open, setOpen, menuRect, triggerRef, menuRef } = useAnchoredMenu(180)
   const { patch, isPendingForThis } = useTaskFieldPatch(task.id)
@@ -225,7 +224,6 @@ export function TaskStatusBadge({ task }: BadgeEditorProps) {
   )
 }
 
-/** Priority pill — click opens the other priority options. */
 export function TaskPriorityBadge({ task }: BadgeEditorProps) {
   const { open, setOpen, menuRect, triggerRef, menuRef } = useAnchoredMenu(160)
   const { patch, isPendingForThis } = useTaskFieldPatch(task.id)
@@ -290,12 +288,6 @@ export function TaskPriorityBadge({ task }: BadgeEditorProps) {
   )
 }
 
-/**
- * Due-date chip — shows the formatted date or "Sem data"; click opens a
- * text field in the user's dateFormat preference (not the browser locale
- * forced by `<input type="date">`). A hidden native picker backs the
- * calendar affordance when available.
- */
 export function TaskDueBadge({ task }: BadgeEditorProps) {
   const dueLabel = useFormattedDate(task.dueDate)
   const dateFormat = useDateFormatPreference()
@@ -395,8 +387,6 @@ export function TaskDueBadge({ task }: BadgeEditorProps) {
             }}
             onBlur={() => {
               if (!draft.trim()) return
-              // Only auto-save when the typed value is already valid; leave
-              // the field open with an error when the user is mid-edit.
               if (parseDateInput(draft, dateFormat)) void commit(draft)
             }}
             className="h-9 w-full rounded-full border border-border/60 bg-card/50 py-2 pl-3 pr-9 text-xs outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"

@@ -15,9 +15,9 @@ import { GlassCard } from '@/components/ui/glass'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { PillSelect } from '@/components/ui/pill-select'
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile'
-import { applyAccessibilityPreview, applyThemePreview } from '@/lib/preview-preferences'
-import { STORAGE_BUCKETS, uploadFile } from '@/lib/storage'
-import { DATE_FORMAT_OPTIONS, ROLE_META, type DateFormat } from '@/lib/types'
+import { applyAccessibilityPreview, applyThemePreview } from '@/services/preferences/preview'
+import { STORAGE_BUCKETS, uploadFile } from '@/services/storage/storage'
+import { DATE_FORMAT_OPTIONS, ROLE_META, type DateFormat } from '@/domain/types'
 import { cn } from '@/lib/utils'
 
 const settingsSchema = z.object({
@@ -49,8 +49,6 @@ export default function SettingsPage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false)
 
-  // Revokes the previous blob URL whenever a new one replaces it, and on
-  // unmount - so picking a few different avatars in a row never leaks.
   useEffect(() => {
     return () => {
       if (avatarPreview) URL.revokeObjectURL(avatarPreview)
@@ -87,20 +85,11 @@ export default function SettingsPage() {
   const fontSizeMultiplier = watch('fontSizeMultiplier')
   const highContrast = watch('highContrast')
 
-  // Live preview: every draft change is reflected on the document
-  // immediately (same DOM writers ThemeProvider/AccessibilityEffects use
-  // for the real, persisted value) - nothing here touches localStorage or
-  // the backend, that only happens once "Salvar alterações" succeeds.
   useEffect(() => {
     applyThemePreview(theme)
     applyAccessibilityPreview({ highContrast, fontSizeMultiplier })
   }, [theme, highContrast, fontSizeMultiplier])
 
-  // Restores the DOM to whatever is actually persisted as soon as the page
-  // unmounts, so navigating away (or reloading data) without saving never
-  // leaves the rest of the app stuck showing a discarded preview. Reads
-  // from a ref so the cleanup always sees the latest profile, not the one
-  // captured when the effect first ran.
   const profileRef = useRef(profile)
   profileRef.current = profile
   useEffect(() => {
@@ -144,8 +133,6 @@ export default function SettingsPage() {
     }
     try {
       await updateProfile.mutateAsync(payload)
-      // The live preview above already shows the theme instantly, but only
-      // persist it to localStorage once the backend confirms the change.
       applyTheme(values.theme)
       if (avatarFile) {
         setValue('avatarUrl', nextAvatarUrl ?? '')
@@ -175,7 +162,7 @@ export default function SettingsPage() {
         <GlassCard className="p-6 sm:p-8">
           <h2 className="text-lg font-semibold tracking-tight">Perfil</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Estas informações aparecem para sua equipe.
+            Estas informações aparecem para administradores.
           </p>
           <div className="mt-6 flex flex-col gap-4">
             <div className="flex items-center gap-4">

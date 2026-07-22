@@ -6,10 +6,9 @@ import type {
   UpdateProfileInput,
 } from '@task-manager/shared-types'
 import { useAuth } from '@/components/auth-provider'
-import { apiClient } from '@/lib/api-client'
-import { queryKeys } from '@/lib/query-keys'
+import { apiClient } from '@/services/http/api-client'
+import { queryKeys } from '@/services/query/keys'
 
-/** The authenticated user's Profile, sourced from GET /auth/me. */
 export function useProfile() {
   const { isAuthenticated, session } = useAuth()
   const userId = session?.user?.id
@@ -21,7 +20,6 @@ export function useProfile() {
   })
 }
 
-/** Mirrors the backend's partial-merge semantics (UsersService.mergePreferences) for the optimistic patch below. */
 function mergeProfileOptimistic(
   previous: ProfileResponse,
   patch: UpdateProfileInput,
@@ -44,7 +42,6 @@ function mergeProfileOptimistic(
   }
 }
 
-/** Partial profile update (name, avatarUrl, preferences) via PATCH /users/me. */
 export function useUpdateProfile() {
   const queryClient = useQueryClient()
   const { session } = useAuth()
@@ -56,11 +53,6 @@ export function useUpdateProfile() {
     onMutate: async (patch) => {
       if (!userId) return { previous: undefined }
 
-      // Cancel any in-flight GET /auth/me for this key - otherwise a
-      // background refetch that started before this mutation (e.g. from a
-      // page navigation remounting a useProfile() consumer while the cache
-      // was stale) can resolve *after* our optimistic/confirmed write and
-      // silently overwrite it with the pre-mutation value.
       await queryClient.cancelQueries({ queryKey: queryKeys.profile.me(userId) })
 
       const previous = queryClient.getQueryData<ProfileResponse>(

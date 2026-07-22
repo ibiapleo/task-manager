@@ -12,7 +12,7 @@ import { GlassCard } from '@/components/ui/glass'
 import { Pagination } from '@/components/ui/pagination'
 import { PillSelect } from '@/components/ui/pill-select'
 import { useUpdateUserRole, useUsersQuery } from '@/hooks/use-users'
-import { ROLE_META } from '@/lib/types'
+import { ROLE_META } from '@/domain/types'
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'ADMIN', label: 'Admin' },

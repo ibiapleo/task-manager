@@ -6,9 +6,6 @@ import type {
   Theme,
 } from '@task-manager/shared-types'
 
-// Re-exported so the rest of the app imports domain types from one place.
-// The actual shapes/validation live in @task-manager/shared-types, which is
-// hand-kept in sync with the NestJS DTOs in apps/api/src.
 export type { Priority, Role }
 export type TaskStatus = TaskResponse['status']
 export type ThemeName = Theme

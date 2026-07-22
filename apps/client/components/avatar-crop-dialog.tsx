@@ -7,7 +7,7 @@ import { ImagePlus, Loader2, RotateCcw, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { GlassCard } from '@/components/ui/glass'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
-import { getCroppedImageBlob } from '@/lib/crop-image'
+import { getCroppedImageBlob } from '@/services/media/crop-image'
 import { cn } from '@/lib/utils'
 
 type Step = 'drop' | 'crop'
@@ -15,17 +15,10 @@ type Step = 'drop' | 'crop'
 interface AvatarCropDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** Receives the final cropped image as a File - never uploads it itself. */
   onCropped: (file: File) => void
 }
 
-/**
- * Drag & drop + crop flow for avatars. Every step here is purely local:
- * the picked file is only ever turned into object URLs/canvas blobs for
- * preview purposes. The resulting File is handed to `onCropped` and the
- * actual Supabase upload only happens later, when the Settings form itself
- * is submitted (see app/settings/page.tsx).
- */
+
 export function AvatarCropDialog({
   open,
   onOpenChange,
@@ -55,8 +48,6 @@ export function AvatarCropDialog({
     setPreviewUrl(null)
   }
 
-  // Revokes every blob URL this dialog ever created, even if the parent
-  // unmounts it directly instead of going through onOpenChange(false).
   useEffect(() => {
     return () => {
       if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current)
@@ -84,8 +75,6 @@ export function AvatarCropDialog({
     },
   })
 
-  // Regenerates the small circular "final result" preview whenever the
-  // crop selection settles - on top of the Cropper's own live viewport.
   useEffect(() => {
     if (!imageUrl || !croppedAreaPixels) return
     let cancelled = false

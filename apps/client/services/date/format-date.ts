@@ -1,11 +1,5 @@
-import type { DateFormat } from './types'
+import type { DateFormat } from '@/domain/types'
 
-/**
- * Due dates in this app are calendar days (from `<input type="date">`), not
- * clock moments. Parsing `"YYYY-MM-DD"` with `new Date(...)` treats it as
- * UTC midnight, so western timezones (e.g. America/Recife) render the
- * previous local day. Prefer the embedded calendar components instead.
- */
 function calendarParts(
   date: string | Date,
 ): { year: string; month: string; day: string } | null {
@@ -28,8 +22,6 @@ function calendarPartsFromDate(date: Date): {
   month: string
   day: string
 } {
-  // API DateTime values for due dates are stored as UTC midnight of the
-  // chosen day - read UTC parts so they stay that day everywhere.
   const year = String(date.getUTCFullYear())
   const month = String(date.getUTCMonth() + 1).padStart(2, '0')
   const day = String(date.getUTCDate()).padStart(2, '0')
@@ -46,12 +38,6 @@ function isValidCalendarDay(year: number, month: number, day: number): boolean {
   )
 }
 
-/**
- * Formats a date according to the user's saved
- * `preferences.localization.dateFormat` (DD/MM/YYYY, MM/DD/YYYY or
- * YYYY-MM-DD). Calendar-day inputs keep the selected day regardless of
- * the browser timezone. Returns `null` for missing/invalid input.
- */
 export function formatDate(
   date: string | Date | null | undefined,
   format: DateFormat,
@@ -74,7 +60,6 @@ export function formatDate(
   }
 }
 
-/** Placeholder hint matching the active date format preference. */
 export function dateFormatPlaceholder(format: DateFormat): string {
   switch (format) {
     case 'MM/DD/YYYY':
@@ -87,11 +72,6 @@ export function dateFormatPlaceholder(format: DateFormat): string {
   }
 }
 
-/**
- * Parses a user-typed date in the given preference format into an ISO
- * calendar day (`YYYY-MM-DD`) for the API. Also accepts a bare ISO day.
- * Returns `null` when the string is empty or not a valid calendar day.
- */
 export function parseDateInput(
   value: string,
   format: DateFormat,

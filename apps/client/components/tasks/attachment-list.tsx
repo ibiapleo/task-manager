@@ -14,7 +14,7 @@ import {
   isLightboxPreviewable,
   resolvePreviewKind,
   type AttachmentPreviewKind,
-} from '@/lib/attachment'
+} from '@/services/tasks/attachment'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { cn } from '@/lib/utils'
 
@@ -27,7 +27,6 @@ interface AttachmentItem extends LightboxAttachment {
   pendingIndex?: number
 }
 
-/** Prefer the persisted original name; never derive labels from the storage URL. */
 function displayName(attachment: RemoteAttachmentRef): string {
   const name = attachment.originalName.trim()
   return name || 'Arquivo'
@@ -181,13 +180,10 @@ export function AttachmentList({
   onRemovePending,
   variant = 'list',
 }: {
-  /** Remote attachments already persisted on the task. */
   attachments: RemoteAttachmentRef[]
   onRemove: (url: string) => void
-  /** Picked locally, not uploaded yet - only sent to the API on submit. */
   pending?: PendingAttachment[]
   onRemovePending?: (index: number) => void
-  /** `gallery` = large preview grid + LightBox (TaskDetailsModal). */
   variant?: 'list' | 'gallery'
 }) {
   const items = useMemo(

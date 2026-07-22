@@ -1,5 +1,5 @@
 import type { TaskFilterInput } from '@task-manager/shared-types'
-import type { Priority, TaskStatus } from '@/lib/types'
+import type { Priority, TaskStatus } from '@/domain/types'
 
 export type TaskViewMode = 'list' | 'kanban'
 export type TaskScope = 'personal' | 'all'
@@ -17,7 +17,6 @@ export interface TaskSearchState {
   status?: TaskStatus
   priority?: Priority
   q: string
-  /** Owner profile id when filtering global board (ADMIN + scope=all). */
   userId?: string
   due: DuePreset
   sort: TaskSortField
@@ -71,7 +70,6 @@ function addUtcDays(isoDate: string, days: number): string {
   return toIsoDate(d)
 }
 
-/** Parse URLSearchParams into a typed task board state (unknown keys ignored). */
 export function parseTaskSearchParams(
   params: URLSearchParams,
 ): TaskSearchState {
@@ -135,7 +133,6 @@ export function toTaskFilterInput(state: TaskSearchState): TaskFilterInput {
 
   switch (state.due) {
     case 'overdue':
-      // Exclusive of today: anything due strictly before today.
       filter.dueBefore = addUtcDays(today, -1)
       break
     case 'today':

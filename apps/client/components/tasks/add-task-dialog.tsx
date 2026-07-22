@@ -17,8 +17,8 @@ import { usePendingAttachments } from '@/hooks/use-pending-attachments'
 import { GlassCard } from '@/components/ui/glass'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { PillSelect } from '@/components/ui/pill-select'
-import { STORAGE_BUCKETS, uploadTaskAttachments } from '@/lib/storage'
-import type { Priority, TaskStatus } from '@/lib/types'
+import { STORAGE_BUCKETS, uploadTaskAttachments } from '@/services/storage/storage'
+import type { Priority, TaskStatus } from '@/domain/types'
 import { cn } from '@/lib/utils'
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [

@@ -5,8 +5,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { Session } from '@supabase/supabase-js'
 import type { RegisterResponse } from '@task-manager/shared-types'
 import { toast } from 'sonner'
-import { apiClient, setUnauthorizedHandler } from '@/lib/api-client'
-import { supabase } from '@/lib/supabase-client'
+import { apiClient, setUnauthorizedHandler } from '@/services/http/api-client'
+import { supabase } from '@/services/auth/supabase-client'
 
 interface AuthContextValue {
   session: Session | null
@@ -22,27 +22,15 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-/**
- * Owns the Supabase auth session only. It intentionally knows nothing about
- * the app's `Profile` (name, role, preferences) - that is business data
- * served by our own API and belongs to `useProfile()` (see hooks/use-profile.ts).
- * Keeping identity (who is this Supabase user) separate from profile
- * (what does our app know about them) follows single-responsibility and
- * avoids two sources of truth for the same data.
- */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
   const [session, setSession] = useState<Session | null>(null)
   const [ready, setReady] = useState(false)
 
   const signOut = useCallback(async () => {
-    // Await the real Supabase teardown before clearing React state. Clearing
-    // first made AppShell bounce to /login while tokens stayed in
-    // localStorage - the session then restored and "another account" never stuck.
     const { error } = await supabase.auth.signOut({ scope: 'local' })
     if (error) throw new Error(error.message)
     setSession(null)
-    // Drop cached profile/tasks so the next session cannot flash the previous user.
     queryClient.clear()
   }, [queryClient])
 
@@ -89,8 +77,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signUp(email: string, password: string) {
-    // Password policy is enforced by Nest RegisterDto; then Supabase signUp
-    // runs server-side. The browser never calls auth.signUp directly.
     const result = await apiClient.post<RegisterResponse>('/auth/register', {
       email,
       password,

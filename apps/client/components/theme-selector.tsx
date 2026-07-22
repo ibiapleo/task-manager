@@ -1,7 +1,7 @@
 'use client'
 
 import { Check, Moon, Sun, Terminal, Waves } from 'lucide-react'
-import type { ThemeName } from '@/lib/types'
+import type { ThemeName } from '@/domain/types'
 import { cn } from '@/lib/utils'
 
 const THEMES: {
@@ -41,12 +41,6 @@ const THEMES: {
   },
 ]
 
-/**
- * Purely presentational and controlled - it no longer applies anything to
- * the DOM/localStorage or persists to the backend itself. The enclosing
- * Settings form owns `value`/`onChange` and only takes effect once the
- * whole form is submitted (see app/settings/page.tsx).
- */
 export function ThemeSelector({
   value,
   onChange,
