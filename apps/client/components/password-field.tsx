@@ -8,11 +8,13 @@ export interface PasswordFieldProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label: string
   error?: string
+  /** When false, hides the show/hide password toggle. Defaults to true. */
+  revealable?: boolean
 }
 
 export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
   function PasswordField(
-    { id, label, error, className, disabled, ...props },
+    { id, label, error, className, disabled, revealable = true, ...props },
     ref,
   ) {
     const [visible, setVisible] = useState(false)
@@ -27,35 +29,38 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
           <input
             id={inputId}
             ref={ref}
-            type={visible ? 'text' : 'password'}
+            type={revealable && visible ? 'text' : 'password'}
             disabled={disabled}
             aria-invalid={!!error}
             className={cn(
-              'h-12 w-full rounded-full border border-border/60 bg-card/50 py-0 pr-12 pl-5 text-sm outline-none backdrop-blur-md transition',
+              'h-12 w-full rounded-full border border-border/60 bg-card/50 py-0 pl-5 text-sm outline-none backdrop-blur-md transition',
+              revealable ? 'pr-12' : 'pr-5',
               'placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50',
               error && 'border-destructive',
               className,
             )}
             {...props}
           />
-          <button
-            type="button"
-            tabIndex={-1}
-            disabled={disabled}
-            onClick={() => setVisible((v) => !v)}
-            aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
-            className={cn(
-              'absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition',
-              'hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-              'disabled:pointer-events-none disabled:opacity-50',
-            )}
-          >
-            {visible ? (
-              <EyeOff className="size-4" aria-hidden />
-            ) : (
-              <Eye className="size-4" aria-hidden />
-            )}
-          </button>
+          {revealable && (
+            <button
+              type="button"
+              tabIndex={-1}
+              disabled={disabled}
+              onClick={() => setVisible((v) => !v)}
+              aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
+              className={cn(
+                'absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition',
+                'hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                'disabled:pointer-events-none disabled:opacity-50',
+              )}
+            >
+              {visible ? (
+                <EyeOff className="size-4" aria-hidden />
+              ) : (
+                <Eye className="size-4" aria-hidden />
+              )}
+            </button>
+          )}
         </div>
         {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
