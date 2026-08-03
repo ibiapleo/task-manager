@@ -48,7 +48,12 @@ export type TaskStatusSummary = z.infer<typeof TaskStatusSummarySchema>;
 export const CreateTaskInputSchema = z.object({
   title: z.string().trim().min(1).max(120),
   description: z.string().max(2000).optional(),
-  dueDate: z.string().min(1).optional(),
+  dueDate: z
+    .string()
+    .optional()
+    .transform((value) =>
+      value && value.trim() !== '' ? value : undefined,
+    ),
   status: TaskStatusSchema.optional(),
   priority: PrioritySchema.optional(),
   attachments: z.array(AttachmentInputSchema).max(20).optional(),
