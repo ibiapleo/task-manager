@@ -12,12 +12,15 @@ interface AuthContextValue {
   session: Session | null
   isAuthenticated: boolean
   ready: boolean
+  isPasswordRecovery: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (
     email: string,
     password: string,
   ) => Promise<{ requiresEmailConfirmation: boolean }>
   signOut: () => Promise<void>
+  requestPasswordReset: (email: string) => Promise<void>
+  updatePassword: (password: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -26,11 +29,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
   const [session, setSession] = useState<Session | null>(null)
   const [ready, setReady] = useState(false)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut({ scope: 'local' })
     if (error) throw new Error(error.message)
     setSession(null)
+    setIsPasswordRecovery(false)
     queryClient.clear()
   }, [queryClient])
 
@@ -41,8 +46,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
+      (event, nextSession) => {
         setSession(nextSession)
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsPasswordRecovery(true)
+        }
+        if (event === 'SIGNED_OUT') {
+          setIsPasswordRecovery(false)
+        }
       },
     )
 
@@ -93,15 +104,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { requiresEmailConfirmation: result.requiresEmailConfirmation }
   }
 
+  async function requestPasswordReset(email: string) {
+    const redirectTo = `${window.location.origin}/reset-password`
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    })
+    if (error) throw new Error(error.message)
+  }
+
+  async function updatePassword(password: string) {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) throw new Error(error.message)
+    setIsPasswordRecovery(false)
+  }
+
   return (
     <AuthContext.Provider
       value={{
         session,
         isAuthenticated: !!session,
         ready,
+        isPasswordRecovery,
         signIn,
         signUp,
         signOut,
+        requestPasswordReset,
+        updatePassword,
       }}
     >
       {children}
