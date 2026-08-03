@@ -137,6 +137,7 @@ export default function RegisterPage() {
             label="Confirmar senha"
             autoComplete="new-password"
             placeholder="••••••••"
+            revealable={false}
             error={errors.confirmPassword?.message}
             {...register('confirmPassword')}
           />
