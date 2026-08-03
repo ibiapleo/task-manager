@@ -1,18 +1,24 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  closestCenter,
   closestCorners,
   DndContext,
   DragOverlay,
+  getFirstCollision,
   KeyboardSensor,
   PointerSensor,
+  pointerWithin,
+  rectIntersection,
   TouchSensor,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type UniqueIdentifier,
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { toast } from 'sonner'
@@ -36,8 +42,12 @@ import type { Priority, Task, TaskStatus } from '@/domain/types'
 
 const STATUSES: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED']
 
-function isStatus(id: string): id is TaskStatus {
-  return (STATUSES as string[]).includes(id)
+function isStatus(id: string | UniqueIdentifier): id is TaskStatus {
+  return (STATUSES as string[]).includes(String(id))
+}
+
+function emptyItemsByStatus(): Record<TaskStatus, string[]> {
+  return { PENDING: [], IN_PROGRESS: [], COMPLETED: [] }
 }
 
 function filtersKey(filters: TaskFilterInput): string {
@@ -128,6 +138,65 @@ export function TasksBoard({
     }),
   )
 
+  const itemsByStatus = useMemo(() => {
+    const map = emptyItemsByStatus()
+    for (const task of tasks) {
+      map[task.status].push(task.id)
+    }
+    return map
+  }, [tasks])
+
+  const lastOverId = useRef<UniqueIdentifier | null>(null)
+  const recentlyMovedToNewContainer = useRef(false)
+
+  const collisionDetection: CollisionDetection = useCallback(
+    (args) => {
+      const pointerIntersections = pointerWithin(args)
+      const intersections =
+        pointerIntersections.length > 0
+          ? pointerIntersections
+          : rectIntersection(args)
+
+      let overId = getFirstCollision(intersections, 'id')
+
+      if (overId != null) {
+        if (isStatus(overId)) {
+          const containerItems = itemsByStatus[overId]
+
+          if (containerItems.length > 0) {
+            overId =
+              closestCenter({
+                ...args,
+                droppableContainers: args.droppableContainers.filter(
+                  (container) =>
+                    container.id !== overId &&
+                    containerItems.includes(String(container.id)),
+                ),
+              })[0]?.id ?? overId
+          }
+        }
+
+        lastOverId.current = overId
+        return [{ id: overId }]
+      }
+
+      if (recentlyMovedToNewContainer.current) {
+        lastOverId.current = activeId
+      }
+
+      return lastOverId.current
+        ? [{ id: lastOverId.current }]
+        : closestCorners(args)
+    },
+    [activeId, itemsByStatus],
+  )
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      recentlyMovedToNewContainer.current = false
+    })
+  }, [tasks])
+
   const activeTask = tasks.find((t) => t.id === activeId) ?? null
 
   function findContainer(id: string): TaskStatus | undefined {
@@ -152,6 +221,7 @@ export function TasksBoard({
       activeContainer === overContainer
     )
       return
+    recentlyMovedToNewContainer.current = true
     setTasks((prev) =>
       prev.map((t) =>
         t.id === activeIdStr ? { ...t, status: overContainer } : t,
@@ -160,28 +230,41 @@ export function TasksBoard({
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    setActiveId(null)
     const { active, over } = event
-    if (!over) return
     const activeIdStr = String(active.id)
+    setActiveId(null)
+    lastOverId.current = null
+    recentlyMovedToNewContainer.current = false
 
-    const movedTask = tasks.find((t) => t.id === activeIdStr)
     const originalTask = serverTasks.find((t) => t.id === activeIdStr)
-    if (
-      movedTask &&
-      originalTask &&
-      movedTask.status !== originalTask.status
-    ) {
-      updateTask.mutate(
-        { id: activeIdStr, patch: { status: movedTask.status } },
-        {
-          onError: () => {
-            toast.error('Não foi possível mover a tarefa.')
-            setTasks(serverTasks)
-          },
+    if (!originalTask) return
+
+    const overId = over ? String(over.id) : null
+    const overContainer = overId
+      ? isStatus(overId)
+        ? overId
+        : findContainer(overId)
+      : undefined
+    const nextStatus =
+      overContainer ?? tasks.find((t) => t.id === activeIdStr)?.status
+
+    if (!nextStatus || nextStatus === originalTask.status) return
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === activeIdStr ? { ...t, status: nextStatus } : t,
+      ),
+    )
+
+    updateTask.mutate(
+      { id: activeIdStr, patch: { status: nextStatus } },
+      {
+        onError: () => {
+          toast.error('Não foi possível mover a tarefa.')
+          setTasks(serverTasks)
         },
-      )
-    }
+      },
+    )
   }
 
   function handleSelectedChange(taskId: string, selected: boolean) {
@@ -296,12 +379,14 @@ export function TasksBoard({
       {viewMode === 'kanban' ? (
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={collisionDetection}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
           onDragCancel={() => {
             setActiveId(null)
+            lastOverId.current = null
+            recentlyMovedToNewContainer.current = false
             setTasks(serverTasks)
           }}
         >
