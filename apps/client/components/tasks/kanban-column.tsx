@@ -32,7 +32,14 @@ export function KanbanColumn({
   onDuplicate,
   onOpen,
 }: KanbanColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: status })
+  const { setNodeRef, isOver } = useDroppable({
+    id: status,
+    data: {
+      type: 'column',
+      status,
+      children: tasks.map((task) => task.id),
+    },
+  })
   const columnSelectRef = useRef<HTMLInputElement>(null)
 
   const columnSelectedCount = selectedIds
