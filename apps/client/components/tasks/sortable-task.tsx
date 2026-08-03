@@ -33,7 +33,10 @@ export function SortableTask({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id, data: { status: task.status } })
+  } = useSortable({
+    id: task.id,
+    data: { type: 'task', status: task.status },
+  })
 
   return (
     <TaskCard
