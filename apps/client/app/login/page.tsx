@@ -100,6 +100,14 @@ export default function LoginPage() {
             error={errors.password?.message}
             {...register('password')}
           />
+          <p className="-mt-2 text-right text-xs text-muted-foreground">
+            <Link
+              href="/forgot-password"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Esqueci a senha
+            </Link>
+          </p>
           <button
             type="submit"
             disabled={isSubmitting}
