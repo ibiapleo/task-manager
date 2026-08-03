@@ -7,7 +7,14 @@ import { useAuth } from '@/components/auth-provider'
 import { Navbar } from '@/components/layout/navbar'
 import { useProfile } from '@/hooks/use-profile'
 
-const PUBLIC_ROUTES = ['/login', '/register']
+/** Unauthenticated-only: authenticated users are sent to /tasks. */
+const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password']
+
+/**
+ * Auth recovery flow: accessible with or without a session.
+ * Must NOT redirect authenticated recovery sessions to /tasks.
+ */
+const AUTH_FLOW_ROUTES = ['/reset-password']
 
 function FullScreenLoader() {
   return (
@@ -24,6 +31,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: profile, isPending: isProfilePending } = useProfile()
 
   const isPublic = PUBLIC_ROUTES.includes(pathname)
+  const isAuthFlow = AUTH_FLOW_ROUTES.includes(pathname)
+  const allowsUnauthenticated = isPublic || isAuthFlow
   const sessionUserId = session?.user?.id
   const profileReady =
     !!profile &&
@@ -33,22 +42,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!ready) return
-    if (!isAuthenticated && !isPublic) {
+    if (!isAuthenticated && !allowsUnauthenticated) {
       router.replace('/login')
     } else if (isAuthenticated && isPublic) {
       router.replace('/tasks')
     }
-  }, [ready, isAuthenticated, isPublic, router])
+  }, [ready, isAuthenticated, isPublic, allowsUnauthenticated, router])
 
   if (!ready) {
     return <FullScreenLoader />
   }
 
-  if ((!isAuthenticated && !isPublic) || (isAuthenticated && isPublic)) {
+  if (
+    (!isAuthenticated && !allowsUnauthenticated) ||
+    (isAuthenticated && isPublic)
+  ) {
     return <FullScreenLoader />
   }
 
-  if (isPublic) {
+  if (isPublic || isAuthFlow) {
     return <main className="min-h-dvh">{children}</main>
   }
 
