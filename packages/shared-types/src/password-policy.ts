@@ -124,6 +124,24 @@ export const RegisterInputSchema = z
 
 export type RegisterInput = z.infer<typeof RegisterInputSchema>;
 
+export const ResetPasswordInputSchema = z
+  .object({
+    password: StrongPasswordSchema,
+    confirmPassword: z.string().min(1, 'Confirme sua senha.'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'As senhas não coincidem.',
+    path: ['confirmPassword'],
+  });
+
+export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>;
+
+export const ForgotPasswordInputSchema = z.object({
+  email: z.string().min(1, 'Informe seu e-mail.').email('E-mail inválido.'),
+});
+
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordInputSchema>;
+
 export const RegisterResponseSchema = z.object({
   requiresEmailConfirmation: z.boolean(),
   session: z
