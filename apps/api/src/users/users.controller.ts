@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -21,6 +22,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { SupabaseAuthGuard } from '../auth/guards/supabase-auth.guard';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { DeleteUserResponseDto } from './dto/delete-user-response.dto';
 import { PaginatedProfilesDto } from './dto/paginated-profiles.dto';
 import { ProfileResponseDto } from './dto/profile-response.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -137,5 +139,46 @@ export class UsersController {
     @Body() updateRoleDto: UpdateRoleDto,
   ) {
     return this.usersService.updateRole(id, updateRoleDto);
+  }
+
+  @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiParam(USER_ID_PARAM)
+  @ApiOperation({
+    summary: 'Delete a user permanently',
+    description:
+      'Removes the user storage objects (avatars and task attachments), ' +
+      'the Supabase Auth account, and the profile row (cascading tasks). ' +
+      'Restricted to ADMIN. Admins cannot delete themselves.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User deleted successfully.',
+    type: DeleteUserResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid UUID.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing, invalid or expired access token.',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Caller is not an ADMIN, or attempted to delete their own account.',
+  })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  @ApiResponse({
+    status: 503,
+    description: 'Supabase Auth or Storage purge failed.',
+  })
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.usersService.remove(id, user.id);
   }
 }

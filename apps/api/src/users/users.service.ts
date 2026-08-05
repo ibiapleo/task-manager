@@ -1,5 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, Profile } from '@prisma/client';
+import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PreferencesDto } from './dto/preferences.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -14,7 +19,10 @@ import { ProfileResponse } from './interfaces/profile-response.interface';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authService: AuthService,
+  ) {}
 
   async findById(id: string): Promise<ProfileResponse> {
     const profile = await this.getProfileOrThrow(id);
@@ -88,6 +96,23 @@ export class UsersService {
     });
 
     return this.toProfileResponse(updated);
+  }
+
+  /**
+   * Permanently deletes a user: Storage (avatar + task attachments) →
+   * Supabase Auth → Profile (DB cascade removes tasks/attachments rows).
+   */
+  async remove(id: string, actorId: string): Promise<{ id: string }> {
+    if (id === actorId) {
+      throw new ForbiddenException('You cannot delete your own account.');
+    }
+
+    await this.getProfileOrThrow(id);
+    await this.authService.purgeUserStorage(id);
+    await this.authService.deleteAuthUser(id);
+    await this.prisma.profile.delete({ where: { id } });
+
+    return { id };
   }
 
   private async getProfileOrThrow(id: string): Promise<Profile> {

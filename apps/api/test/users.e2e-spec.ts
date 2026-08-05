@@ -1,13 +1,14 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Prisma } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { AuthService } from '../src/auth/auth.service';
 import { SupabaseAuthGuard } from '../src/auth/guards/supabase-auth.guard';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { applyGlobalPipes } from './utils/apply-global-pipes';
 import { buildMockAuthGuard } from './utils/mock-auth-guard';
-import { buildMockProfile } from './utils/mock-profile';
+import { buildMockProfile, MOCK_USER_ID } from './utils/mock-profile';
 
 // PrismaService is fully mocked (see prismaMock below) instead of hitting a
 // real database - this keeps every test isolated by construction (no shared
@@ -17,12 +18,20 @@ import { buildMockProfile } from './utils/mock-profile';
 // real Supabase-signed JWT.
 describe('Users (e2e)', () => {
   const mockProfile = buildMockProfile();
+  const targetUserId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
   const prismaMock = {
     profile: {
       findUnique: jest.fn().mockResolvedValue(mockProfile),
       update: jest.fn(),
+      delete: jest.fn(),
     },
+  };
+
+  const authServiceMock = {
+    purgeUserStorage: jest.fn().mockResolvedValue(undefined),
+    deleteAuthUser: jest.fn().mockResolvedValue(undefined),
+    register: jest.fn(),
   };
 
   describe('without a valid token', () => {
@@ -34,6 +43,8 @@ describe('Users (e2e)', () => {
       })
         .overrideProvider(PrismaService)
         .useValue(prismaMock)
+        .overrideProvider(AuthService)
+        .useValue(authServiceMock)
         .compile();
 
       app = moduleFixture.createNestApplication();
@@ -55,9 +66,15 @@ describe('Users (e2e)', () => {
         .send({ name: 'Ada Lovelace' })
         .expect(401);
     });
+
+    it('DELETE /users/:id returns 401 when no access token is sent', () => {
+      return request(app.getHttpServer())
+        .delete(`/users/${targetUserId}`)
+        .expect(401);
+    });
   });
 
-  describe('with a valid (mocked) token', () => {
+  describe('with a valid (mocked) COMMON token', () => {
     let app: INestApplication;
 
     beforeAll(async () => {
@@ -66,6 +83,8 @@ describe('Users (e2e)', () => {
       })
         .overrideProvider(PrismaService)
         .useValue(prismaMock)
+        .overrideProvider(AuthService)
+        .useValue(authServiceMock)
         .overrideGuard(SupabaseAuthGuard)
         .useValue(buildMockAuthGuard(mockProfile))
         .compile();
@@ -157,6 +176,90 @@ describe('Users (e2e)', () => {
           .expect(400);
 
         expect(prismaMock.profile.update).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('DELETE /users/:id', () => {
+      it('returns 403 for COMMON users', async () => {
+        await request(app.getHttpServer())
+          .delete(`/users/${targetUserId}`)
+          .set('Authorization', 'Bearer valid-mocked-token')
+          .expect(403);
+
+        expect(authServiceMock.purgeUserStorage).not.toHaveBeenCalled();
+        expect(authServiceMock.deleteAuthUser).not.toHaveBeenCalled();
+        expect(prismaMock.profile.delete).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('with a valid (mocked) ADMIN token', () => {
+    let app: INestApplication;
+    const adminProfile = buildMockProfile({
+      id: MOCK_USER_ID,
+      role: Role.ADMIN,
+      email: 'admin@example.com',
+    });
+
+    beforeAll(async () => {
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [AppModule],
+      })
+        .overrideProvider(PrismaService)
+        .useValue(prismaMock)
+        .overrideProvider(AuthService)
+        .useValue(authServiceMock)
+        .overrideGuard(SupabaseAuthGuard)
+        .useValue(buildMockAuthGuard(adminProfile))
+        .compile();
+
+      app = moduleFixture.createNestApplication();
+      applyGlobalPipes(app);
+      await app.init();
+    });
+
+    afterAll(async () => {
+      await app.close();
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    describe('DELETE /users/:id', () => {
+      it('returns 403 when an admin tries to delete themselves', async () => {
+        await request(app.getHttpServer())
+          .delete(`/users/${adminProfile.id}`)
+          .set('Authorization', 'Bearer valid-mocked-token')
+          .expect(403);
+
+        expect(authServiceMock.purgeUserStorage).not.toHaveBeenCalled();
+        expect(prismaMock.profile.delete).not.toHaveBeenCalled();
+      });
+
+      it('returns 200 and purges storage, auth, and profile', async () => {
+        const target = buildMockProfile({
+          id: targetUserId,
+          email: 'victim@example.com',
+        });
+        prismaMock.profile.findUnique.mockResolvedValue(target);
+        prismaMock.profile.delete.mockResolvedValue(target);
+
+        const response = await request(app.getHttpServer())
+          .delete(`/users/${targetUserId}`)
+          .set('Authorization', 'Bearer valid-mocked-token')
+          .expect(200);
+
+        expect(response.body).toEqual({ id: targetUserId });
+        expect(authServiceMock.purgeUserStorage).toHaveBeenCalledWith(
+          targetUserId,
+        );
+        expect(authServiceMock.deleteAuthUser).toHaveBeenCalledWith(
+          targetUserId,
+        );
+        expect(prismaMock.profile.delete).toHaveBeenCalledWith({
+          where: { id: targetUserId },
+        });
       });
     });
   });
