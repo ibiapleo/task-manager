@@ -1,6 +1,7 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Profile, Role } from '@prisma/client';
+import { SupabaseAdminService } from '../auth/supabase-admin.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Theme } from './dto/theme.enum';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -12,11 +13,18 @@ type MockPrismaService = {
     update: jest.Mock;
     findMany: jest.Mock;
     count: jest.Mock;
+    delete: jest.Mock;
   };
   $transaction: jest.Mock;
 };
 
+type MockSupabaseAdminService = {
+  purgeUserStorage: jest.Mock;
+  deleteAuthUser: jest.Mock;
+};
+
 const USER_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+const ACTOR_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 
 function buildProfile(overrides: Partial<Profile> = {}): Profile {
   return {
@@ -39,6 +47,7 @@ function buildProfile(overrides: Partial<Profile> = {}): Profile {
 describe('UsersService', () => {
   let service: UsersService;
   let prisma: MockPrismaService;
+  let supabaseAdmin: MockSupabaseAdminService;
 
   beforeEach(async () => {
     prisma = {
@@ -47,12 +56,22 @@ describe('UsersService', () => {
         update: jest.fn(),
         findMany: jest.fn(),
         count: jest.fn(),
+        delete: jest.fn(),
       },
       $transaction: jest.fn(),
     };
 
+    supabaseAdmin = {
+      purgeUserStorage: jest.fn().mockResolvedValue(undefined),
+      deleteAuthUser: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        UsersService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: SupabaseAdminService, useValue: supabaseAdmin },
+      ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
@@ -158,6 +177,75 @@ describe('UsersService', () => {
         where: { id: USER_ID },
         data: { role: Role.ADMIN },
       });
+    });
+  });
+
+  describe('remove', () => {
+    it('throws ForbiddenException when the actor tries to delete themselves', async () => {
+      await expect(service.remove(ACTOR_ID, ACTOR_ID)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(supabaseAdmin.purgeUserStorage).not.toHaveBeenCalled();
+      expect(supabaseAdmin.deleteAuthUser).not.toHaveBeenCalled();
+      expect(prisma.profile.delete).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when the target user does not exist', async () => {
+      prisma.profile.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.remove('missing-id', ACTOR_ID),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(supabaseAdmin.purgeUserStorage).not.toHaveBeenCalled();
+      expect(supabaseAdmin.deleteAuthUser).not.toHaveBeenCalled();
+      expect(prisma.profile.delete).not.toHaveBeenCalled();
+    });
+
+    it('purges storage, deletes auth user, then deletes the profile', async () => {
+      const profile = buildProfile();
+      prisma.profile.findUnique.mockResolvedValue(profile);
+      prisma.profile.delete.mockResolvedValue(profile);
+
+      const result = await service.remove(USER_ID, ACTOR_ID);
+
+      expect(result).toEqual({ id: USER_ID });
+      expect(supabaseAdmin.purgeUserStorage).toHaveBeenCalledWith(USER_ID);
+      expect(supabaseAdmin.deleteAuthUser).toHaveBeenCalledWith(USER_ID);
+      expect(prisma.profile.delete).toHaveBeenCalledWith({
+        where: { id: USER_ID },
+      });
+      expect(
+        supabaseAdmin.purgeUserStorage.mock.invocationCallOrder[0],
+      ).toBeLessThan(supabaseAdmin.deleteAuthUser.mock.invocationCallOrder[0]);
+      expect(
+        supabaseAdmin.deleteAuthUser.mock.invocationCallOrder[0],
+      ).toBeLessThan(prisma.profile.delete.mock.invocationCallOrder[0]);
+    });
+
+    it('does not delete auth or profile when storage purge fails', async () => {
+      const profile = buildProfile();
+      prisma.profile.findUnique.mockResolvedValue(profile);
+      supabaseAdmin.purgeUserStorage.mockRejectedValue(
+        new Error('storage down'),
+      );
+
+      await expect(service.remove(USER_ID, ACTOR_ID)).rejects.toThrow(
+        'storage down',
+      );
+      expect(supabaseAdmin.deleteAuthUser).not.toHaveBeenCalled();
+      expect(prisma.profile.delete).not.toHaveBeenCalled();
+    });
+
+    it('does not delete the profile when auth delete fails', async () => {
+      const profile = buildProfile();
+      prisma.profile.findUnique.mockResolvedValue(profile);
+      supabaseAdmin.deleteAuthUser.mockRejectedValue(new Error('auth down'));
+
+      await expect(service.remove(USER_ID, ACTOR_ID)).rejects.toThrow(
+        'auth down',
+      );
+      expect(supabaseAdmin.purgeUserStorage).toHaveBeenCalledWith(USER_ID);
+      expect(prisma.profile.delete).not.toHaveBeenCalled();
     });
   });
 
