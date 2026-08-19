@@ -58,3 +58,14 @@ export function useUpdateUserRole() {
     },
   })
 }
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.delete<{ id: string }>(`/users/${id}`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.all() })
+    },
+  })
+}
