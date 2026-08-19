@@ -2,6 +2,7 @@
 
 import { forwardRef } from 'react'
 import {
+  AlertTriangle,
   CalendarDays,
   Check,
   Copy,
@@ -26,6 +27,7 @@ import { UserAvatar } from '@/components/user-avatar'
 import type { Task } from '@/domain/types'
 import { PRIORITY_META, STATUS_META } from '@/domain/types'
 import { cn } from '@/lib/utils'
+import { getTaskVisualState } from '@/services/tasks/task-visual-state'
 
 const DESCRIPTION_LIMIT = 120
 
@@ -76,6 +78,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
       ? truncateDescription(task.description)
       : null
     const ownerName = task.user?.name?.trim() || 'Sem nome'
+    const visualState = getTaskVisualState(task)
 
     async function handleComplete(e: React.MouseEvent) {
       e.stopPropagation()
@@ -104,6 +107,8 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
           dragging && 'opacity-40',
           overlay && 'rotate-3 cursor-grabbing shadow-2xl',
           onOpen && 'cursor-pointer',
+          visualState === 'completed' && 'ring-1 ring-success/30',
+          visualState === 'overdue' && 'ring-1 ring-destructive/40',
           className,
         )}
         onClick={onOpen}
@@ -150,7 +155,13 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
 
         <div className={cn(variant === 'list' && 'min-w-0 flex-1')}>
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold leading-tight tracking-tight text-pretty">
+            <h3
+              className={cn(
+                'font-semibold leading-tight tracking-tight text-pretty',
+                visualState === 'completed' &&
+                  'text-muted-foreground line-through decoration-2',
+              )}
+            >
               {task.title}
             </h3>
             <div className="flex shrink-0 items-center gap-1 opacity-0 transition focus-within:opacity-100 group-hover/card:opacity-100">
@@ -251,6 +262,12 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {overlay ? (
               <>
+                {visualState === 'overdue' && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive">
+                    <AlertTriangle className="size-3" aria-hidden />
+                    Atrasada
+                  </span>
+                )}
                 <span
                   className={cn(
                     'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
@@ -268,7 +285,14 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
                   {PRIORITY_META[task.priority].label}
                 </span>
                 {dueLabel && (
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 text-xs',
+                      visualState === 'overdue'
+                        ? 'text-destructive'
+                        : 'text-muted-foreground',
+                    )}
+                  >
                     <CalendarDays className="size-3" />
                     {dueLabel}
                   </span>
@@ -276,6 +300,12 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(
               </>
             ) : (
               <>
+                {visualState === 'overdue' && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive">
+                    <AlertTriangle className="size-3" aria-hidden />
+                    Atrasada
+                  </span>
+                )}
                 <TaskStatusBadge task={task} />
                 <TaskPriorityBadge task={task} />
                 <TaskDueBadge task={task} />
