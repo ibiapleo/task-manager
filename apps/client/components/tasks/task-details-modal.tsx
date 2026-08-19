@@ -23,6 +23,7 @@ import { STORAGE_BUCKETS, uploadTaskAttachments } from '@/services/storage/stora
 import type { Priority, TaskStatus } from '@/domain/types'
 import { STATUS_META } from '@/domain/types'
 import { cn } from '@/lib/utils'
+import { isTaskOverdue } from '@/services/tasks/task-visual-state'
 import { UserAvatar } from '@/components/user-avatar'
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -99,6 +100,10 @@ export function TaskDetailsModal({
   const dueLabel = useFormattedDate(
     watchedDueDate || task?.dueDate || null,
   )
+  const dueOverdue = isTaskOverdue({
+    status: watchedStatus,
+    dueDate: watchedDueDate || null,
+  })
 
   useEffect(() => {
     if (task) {
@@ -326,8 +331,14 @@ export function TaskDetailsModal({
                 id="task-details-due"
                 type="date"
                 {...register('dueDate')}
-                className="h-10 w-full rounded-full border border-border/60 bg-card/50 px-5 text-sm outline-none backdrop-blur-md transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                className={cn(
+                  'h-10 w-full rounded-full border border-border/60 bg-card/50 px-5 text-sm outline-none backdrop-blur-md transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50',
+                  dueOverdue && 'border-destructive/60 text-destructive',
+                )}
               />
+              {dueOverdue && (
+                <p className="text-xs text-destructive">Prazo vencido.</p>
+              )}
             </div>
           </section>
 
