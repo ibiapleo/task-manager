@@ -16,21 +16,39 @@ import { buildMockProfile } from './utils/mock-profile';
 // real Supabase-signed JWT.
 describe('Tasks (e2e)', () => {
   const mockProfile = buildMockProfile();
+  const workspaceId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const ownedWorkspace = {
+    id: workspaceId,
+    name: 'Geral',
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    profileId: mockProfile.id,
+  };
 
   const prismaMock = {
     profile: {
       findUnique: jest.fn().mockResolvedValue(mockProfile),
       create: jest.fn().mockResolvedValue(mockProfile),
     },
+    workspace: {
+      findUnique: jest.fn().mockResolvedValue(ownedWorkspace),
+      findMany: jest.fn().mockResolvedValue([ownedWorkspace]),
+      create: jest.fn(),
+    },
     task: {
       create: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
       count: jest.fn().mockResolvedValue(0),
     },
-    $transaction: jest.fn((operations: Promise<unknown>[]) =>
-      Promise.all(operations),
-    ),
+    $transaction: jest.fn(),
   };
+
+  prismaMock.$transaction.mockImplementation((arg: unknown) => {
+    if (typeof arg === 'function') {
+      return (arg as (tx: typeof prismaMock) => unknown)(prismaMock);
+    }
+    return Promise.all(arg as Promise<unknown>[]);
+  });
 
   describe('GET /tasks - without a valid token', () => {
     let app: INestApplication;
@@ -126,9 +144,12 @@ describe('Tasks (e2e)', () => {
         jest.clearAllMocks();
         prismaMock.task.findMany.mockResolvedValue([]);
         prismaMock.task.count.mockResolvedValue(0);
-        prismaMock.$transaction.mockImplementation(
-          (operations: Promise<unknown>[]) => Promise.all(operations),
-        );
+        prismaMock.$transaction.mockImplementation((arg: unknown) => {
+          if (typeof arg === 'function') {
+            return (arg as (tx: unknown) => unknown)(prismaMock);
+          }
+          return Promise.all(arg as Promise<unknown>[]);
+        });
 
         await request(app.getHttpServer())
           .get('/tasks')
@@ -156,6 +177,7 @@ describe('Tasks (e2e)', () => {
           createdAt: new Date('2026-01-01T00:00:00.000Z'),
           updatedAt: new Date('2026-01-01T00:00:00.000Z'),
           profileId: mockProfile.id,
+          workspaceId,
           attachments: [],
           profile: {
             id: mockProfile.id,
@@ -168,27 +190,41 @@ describe('Tasks (e2e)', () => {
         const response = await request(app.getHttpServer())
           .post('/tasks')
           .set('Authorization', 'Bearer valid-mocked-token')
-          .send({ title: 'Write the E2E tests' })
+          .send({ title: 'Write the E2E tests', workspaceId })
           .expect(201);
 
         expect(response.body).toEqual(
           expect.objectContaining({
             title: 'Write the E2E tests',
             profileId: mockProfile.id,
+            workspaceId,
           }),
         );
         expect(prismaMock.task.create).toHaveBeenCalledWith(
           expect.objectContaining({
-            data: expect.objectContaining({ profileId: mockProfile.id }),
+            data: expect.objectContaining({
+              profileId: mockProfile.id,
+              workspaceId,
+            }),
           }),
         );
+      });
+
+      it('returns 400 when workspaceId is missing', async () => {
+        await request(app.getHttpServer())
+          .post('/tasks')
+          .set('Authorization', 'Bearer valid-mocked-token')
+          .send({ title: 'Write the E2E tests' })
+          .expect(400);
+
+        expect(prismaMock.task.create).not.toHaveBeenCalled();
       });
 
       it('returns 400 when the body fails validation', async () => {
         await request(app.getHttpServer())
           .post('/tasks')
           .set('Authorization', 'Bearer valid-mocked-token')
-          .send({ title: '' })
+          .send({ title: '', workspaceId })
           .expect(400);
 
         expect(prismaMock.task.create).not.toHaveBeenCalled();
