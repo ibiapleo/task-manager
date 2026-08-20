@@ -1,0 +1,3 @@
+export const DEFAULT_WORKSPACE_NAME = 'Geral';
+export const MAX_WORKSPACES_PER_PROFILE = 20;
+export const WORKSPACE_NAME_MAX_LENGTH = 40;
