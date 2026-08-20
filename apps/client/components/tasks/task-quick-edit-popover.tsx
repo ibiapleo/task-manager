@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   useDateFormatPreference,
@@ -25,6 +25,7 @@ import {
 import type { Priority, Task, TaskStatus } from '@/domain/types'
 import { PRIORITY_META, STATUS_META } from '@/domain/types'
 import { cn } from '@/lib/utils'
+import { isTaskOverdue } from '@/services/tasks/task-visual-state'
 
 const STATUS_OPTIONS: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED']
 const PRIORITY_OPTIONS: Priority[] = ['LOW', 'MEDIUM', 'HIGH']
@@ -291,6 +292,7 @@ export function TaskPriorityBadge({ task }: BadgeEditorProps) {
 export function TaskDueBadge({ task }: BadgeEditorProps) {
   const dueLabel = useFormattedDate(task.dueDate)
   const dateFormat = useDateFormatPreference()
+  const overdue = isTaskOverdue(task)
   const { open, setOpen, menuRect, triggerRef, menuRef } = useAnchoredMenu(240)
   const { patch, isPendingForThis } = useTaskFieldPatch(task.id)
   const inputId = useId()
@@ -332,7 +334,9 @@ export function TaskDueBadge({ task }: BadgeEditorProps) {
         aria-expanded={open}
         aria-label={
           dueLabel
-            ? `Alterar data limite (atual: ${dueLabel})`
+            ? overdue
+              ? `Alterar data limite (atual: ${dueLabel}, atrasada)`
+              : `Alterar data limite (atual: ${dueLabel})`
             : 'Definir data limite'
         }
         disabled={isPendingForThis}
@@ -345,11 +349,17 @@ export function TaskDueBadge({ task }: BadgeEditorProps) {
           'hover:ring-2 hover:ring-ring/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           'disabled:opacity-50 disabled:active:scale-100',
           dueLabel
-            ? 'bg-card/50 text-muted-foreground'
+            ? overdue
+              ? 'bg-destructive/15 text-destructive'
+              : 'bg-card/50 text-muted-foreground'
             : 'border border-dashed border-border/60 text-muted-foreground',
         )}
       >
-        <CalendarDays className="size-3" />
+        {overdue ? (
+          <AlertTriangle className="size-3" aria-hidden />
+        ) : (
+          <CalendarDays className="size-3" />
+        )}
         {dueLabel ?? 'Sem data'}
       </button>
 

@@ -38,6 +38,15 @@ function isValidCalendarDay(year: number, month: number, day: number): boolean {
   )
 }
 
+export function toCivilDay(
+  date: string | Date | null | undefined,
+): string | null {
+  if (!date) return null
+  const parts = calendarParts(date)
+  if (!parts) return null
+  return `${parts.year}-${parts.month}-${parts.day}`
+}
+
 export function formatDate(
   date: string | Date | null | undefined,
   format: DateFormat,
