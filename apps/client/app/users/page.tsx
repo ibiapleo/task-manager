@@ -2,17 +2,23 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Search, ShieldAlert } from 'lucide-react'
+import { Search, ShieldAlert, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Role } from '@task-manager/shared-types'
 import { AdminOnly } from '@/components/admin-only'
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import { UserAvatar } from '@/components/user-avatar'
+import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass'
 import { Pagination } from '@/components/ui/pagination'
 import { PillSelect } from '@/components/ui/pill-select'
-import { useUpdateUserRole, useUsersQuery } from '@/hooks/use-users'
 import { ROLE_META } from '@/domain/types'
+import { useProfile } from '@/hooks/use-profile'
+import {
+  useDeleteUser,
+  useUpdateUserRole,
+  useUsersQuery,
+} from '@/hooks/use-users'
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'ADMIN', label: 'Admin' },
@@ -33,6 +39,7 @@ function UsersPageContent() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { data: me } = useProfile()
 
   const page = useMemo(
     () => parsePageParam(searchParams.get('page')),
@@ -89,13 +96,16 @@ function UsersPageContent() {
     search: searchFromUrl || undefined,
   })
   const updateRole = useUpdateUserRole()
+  const deleteUser = useDeleteUser()
   const [pending, setPending] = useState<{ id: string; role: Role } | null>(
     null,
   )
+  const [toDeleteId, setToDeleteId] = useState<string | null>(null)
 
   const users = data?.data ?? []
   const meta = data?.meta
   const target = users.find((u) => u.id === pending?.id)
+  const toDelete = users.find((u) => u.id === toDeleteId)
 
   useEffect(() => {
     if (!meta || meta.totalPages === 0) return
@@ -111,7 +121,7 @@ function UsersPageContent() {
           Usuários
         </h1>
         <p className="mt-3 text-muted-foreground text-pretty">
-          Gerencie funções de acesso da sua equipe.
+          Gerencie funções de acesso e exclusão da sua equipe.
         </p>
       </header>
 
@@ -152,38 +162,53 @@ function UsersPageContent() {
           <>
             <GlassCard className="overflow-hidden p-2 sm:p-3">
               <ul className="flex flex-col">
-                {users.map((u) => (
-                  <li
-                    key={u.id}
-                    className="flex flex-col gap-3 rounded-2xl p-4 transition hover:bg-card/40 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex items-center gap-3">
-                      <UserAvatar profile={u} />
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {u.name || u.email}
-                        </p>
-                        <p className="truncate text-sm text-muted-foreground">
-                          {u.email}
-                        </p>
+                {users.map((u) => {
+                  const isSelf = me?.id === u.id
+                  return (
+                    <li
+                      key={u.id}
+                      className="flex flex-col gap-3 rounded-2xl p-4 transition hover:bg-card/40 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <UserAvatar profile={u} />
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">
+                            {u.name || u.email}
+                          </p>
+                          <p className="truncate text-sm text-muted-foreground">
+                            {u.email}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3 sm:w-56">
-                      <span className="hidden text-xs text-muted-foreground sm:inline">
-                        Função
-                      </span>
-                      <PillSelect<Role>
-                        className="flex-1"
-                        label={`Função de ${u.name || u.email}`}
-                        value={u.role}
-                        options={ROLE_OPTIONS}
-                        onChange={(role) => {
-                          if (role !== u.role) setPending({ id: u.id, role })
-                        }}
-                      />
-                    </div>
-                  </li>
-                ))}
+                      <div className="flex items-center gap-2 sm:w-72">
+                        <span className="hidden text-xs text-muted-foreground sm:inline">
+                          Função
+                        </span>
+                        <PillSelect<Role>
+                          className="flex-1"
+                          label={`Função de ${u.name || u.email}`}
+                          value={u.role}
+                          options={ROLE_OPTIONS}
+                          onChange={(role) => {
+                            if (role !== u.role) setPending({ id: u.id, role })
+                          }}
+                        />
+                        {!isSelf && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
+                            aria-label={`Excluir ${u.name || u.email}`}
+                            onClick={() => setToDeleteId(u.id)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
                 {users.length === 0 && (
                   <li className="p-8 text-center text-sm text-muted-foreground">
                     Nenhum usuário encontrado.
@@ -226,6 +251,33 @@ function UsersPageContent() {
               error instanceof Error
                 ? error.message
                 : 'Não foi possível atualizar a função.',
+            )
+            throw error
+          }
+        }}
+      />
+
+      <ConfirmActionDialog
+        open={!!toDeleteId}
+        onOpenChange={(o) => !o && setToDeleteId(null)}
+        title="Excluir usuário?"
+        description={
+          toDelete
+            ? `${toDelete.name || toDelete.email} será removido permanentemente, incluindo conta, tarefas e arquivos. Esta ação não pode ser desfeita.`
+            : undefined
+        }
+        variant="destructive"
+        confirmLabel="Excluir"
+        onConfirm={async () => {
+          if (!toDeleteId) return
+          try {
+            await deleteUser.mutateAsync(toDeleteId)
+            toast.success('Usuário excluído.')
+          } catch (error) {
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : 'Não foi possível excluir o usuário.',
             )
             throw error
           }
