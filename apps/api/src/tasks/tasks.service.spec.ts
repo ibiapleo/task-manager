@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Attachment, Priority, Role, Task, TaskStatus } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TasksService } from './tasks.service';
 
@@ -23,6 +24,8 @@ type MockPrismaService = {
 const OWNER_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const OTHER_USER_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const ADMIN_ID = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+const OWNER_WORKSPACE_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const OTHER_WORKSPACE_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 
 // AuthenticatedUser is the full Profile entity (see
 // authenticated-user.interface.ts), so fixtures must include every column.
@@ -72,6 +75,7 @@ function buildTask(overrides: Partial<Task> = {}): Task & {
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     profileId,
+    workspaceId: OWNER_WORKSPACE_ID,
     attachments: [],
     profile: {
       id: profileId,
@@ -85,6 +89,7 @@ function buildTask(overrides: Partial<Task> = {}): Task & {
 describe('TasksService', () => {
   let service: TasksService;
   let prisma: MockPrismaService;
+  let workspaces: { assertOwnedWorkspace: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -100,9 +105,16 @@ describe('TasksService', () => {
       },
       $transaction: jest.fn(),
     };
+    workspaces = {
+      assertOwnedWorkspace: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TasksService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        TasksService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: WorkspacesService, useValue: workspaces },
+      ],
     }).compile();
 
     service = module.get<TasksService>(TasksService);
@@ -114,18 +126,46 @@ describe('TasksService', () => {
 
   describe('create', () => {
     it('persists the profileId of the authenticated user, not a client-supplied value', async () => {
-      const dto: CreateTaskDto = { title: 'New task' };
+      const dto: CreateTaskDto = {
+        title: 'New task',
+        workspaceId: OWNER_WORKSPACE_ID,
+      };
       const created = buildTask({ title: dto.title, profileId: ownerUser.id });
       prisma.task.create.mockResolvedValue(created);
 
       const result = await service.create(dto, ownerUser);
 
+      expect(workspaces.assertOwnedWorkspace).toHaveBeenCalledWith(
+        OWNER_WORKSPACE_ID,
+        ownerUser.id,
+      );
       expect(prisma.task.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ profileId: ownerUser.id }),
+          data: expect.objectContaining({
+            profileId: ownerUser.id,
+            workspaceId: OWNER_WORKSPACE_ID,
+          }),
         }),
       );
       expect(result.profileId).toBe(ownerUser.id);
+      expect(result.workspaceId).toBe(OWNER_WORKSPACE_ID);
+    });
+
+    it('rejects creating a task in a workspace owned by someone else', async () => {
+      const dto: CreateTaskDto = {
+        title: 'New task',
+        workspaceId: OTHER_WORKSPACE_ID,
+      };
+      workspaces.assertOwnedWorkspace.mockRejectedValue(
+        new ForbiddenException(
+          'You do not have permission to access this workspace.',
+        ),
+      );
+
+      await expect(service.create(dto, ownerUser)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(prisma.task.create).not.toHaveBeenCalled();
     });
   });
 
@@ -383,6 +423,7 @@ describe('TasksService', () => {
             priority: Priority.HIGH,
             status: TaskStatus.PENDING,
             profileId: OWNER_ID,
+            workspaceId: OWNER_WORKSPACE_ID,
           }),
         }),
       );
@@ -403,12 +444,14 @@ describe('TasksService', () => {
     it('allows an ADMIN to duplicate a foreign task', async () => {
       const source = buildTask({
         profileId: OTHER_USER_ID,
+        workspaceId: OTHER_WORKSPACE_ID,
         title: 'Admin copy',
         status: TaskStatus.IN_PROGRESS,
       });
       const created = buildTask({
         id: 'dup-admin',
         profileId: ADMIN_ID,
+        workspaceId: OTHER_WORKSPACE_ID,
         title: source.title,
         status: TaskStatus.PENDING,
       });
@@ -422,6 +465,7 @@ describe('TasksService', () => {
           data: expect.objectContaining({
             profileId: ADMIN_ID,
             status: TaskStatus.PENDING,
+            workspaceId: OTHER_WORKSPACE_ID,
           }),
         }),
       );
@@ -462,6 +506,44 @@ describe('TasksService', () => {
       );
 
       expect(result.title).toBe('Updated by admin');
+      expect(prisma.task.update).toHaveBeenCalled();
+    });
+
+    it('rejects moving a task into a workspace that is not owned by the task owner', async () => {
+      const task = buildTask({ profileId: OWNER_ID });
+      prisma.task.findUnique.mockResolvedValue(task);
+      workspaces.assertOwnedWorkspace.mockRejectedValue(
+        new ForbiddenException(
+          'You do not have permission to access this workspace.',
+        ),
+      );
+
+      await expect(
+        service.update(task.id, { workspaceId: OTHER_WORKSPACE_ID }, ownerUser),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(workspaces.assertOwnedWorkspace).toHaveBeenCalledWith(
+        OTHER_WORKSPACE_ID,
+        OWNER_ID,
+      );
+      expect(prisma.task.update).not.toHaveBeenCalled();
+    });
+
+    it('lets ADMIN move another user task only into that user workspaces', async () => {
+      const task = buildTask({
+        profileId: OTHER_USER_ID,
+        workspaceId: OTHER_WORKSPACE_ID,
+      });
+      const destinationId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+      const updated = { ...task, workspaceId: destinationId };
+      prisma.task.findUnique.mockResolvedValue(task);
+      prisma.task.update.mockResolvedValue(updated);
+
+      await service.update(task.id, { workspaceId: destinationId }, adminUser);
+
+      expect(workspaces.assertOwnedWorkspace).toHaveBeenCalledWith(
+        destinationId,
+        OTHER_USER_ID,
+      );
       expect(prisma.task.update).toHaveBeenCalled();
     });
   });
@@ -578,6 +660,31 @@ describe('TasksService', () => {
           }),
         }),
       );
+    });
+
+    it('filters by workspaceId on personal scope', async () => {
+      await service.findAll({ workspaceId: OWNER_WORKSPACE_ID }, ownerUser);
+
+      expect(prisma.task.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            profileId: OWNER_ID,
+            workspaceId: OWNER_WORKSPACE_ID,
+          }),
+        }),
+      );
+    });
+
+    it('ignores workspaceId when ADMIN lists scope=all', async () => {
+      await service.findAll(
+        { scope: 'all', workspaceId: OWNER_WORKSPACE_ID },
+        adminUser,
+      );
+
+      const call = prisma.task.findMany.mock.calls[0][0] as {
+        where: Record<string, unknown>;
+      };
+      expect(call.where).not.toHaveProperty('workspaceId');
     });
   });
 });

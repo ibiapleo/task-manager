@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TaskFilterDto } from './dto/task-filter.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -45,12 +46,17 @@ type TaskWithRelations = Task & {
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly workspaces: WorkspacesService,
+  ) {}
 
   async create(
     dto: CreateTaskDto,
     user: AuthenticatedUser,
   ): Promise<TaskResponse> {
+    await this.workspaces.assertOwnedWorkspace(dto.workspaceId, user.id);
+
     const task = await this.prisma.task.create({
       data: {
         title: dto.title,
@@ -62,6 +68,7 @@ export class TasksService {
         // client-supplied value - prevents creating tasks on someone else's
         // behalf.
         profileId: user.id,
+        workspaceId: dto.workspaceId,
         attachments: this.buildAttachmentsCreateInput(dto.attachments),
       },
       include: TASK_INCLUDE,
@@ -87,6 +94,7 @@ export class TasksService {
       order = 'desc',
       page = 1,
       limit = 20,
+      workspaceId,
     } = filter;
 
     if (scope === 'all' && user.role !== Role.ADMIN) {
@@ -100,7 +108,12 @@ export class TasksService {
     );
 
     const where: Prisma.TaskWhereInput = {
-      ...(scope === 'all' ? {} : { profileId: user.id }),
+      ...(scope === 'all'
+        ? {}
+        : {
+            profileId: user.id,
+            ...(workspaceId ? { workspaceId } : {}),
+          }),
       ...(scope === 'all' && user.role === Role.ADMIN && profileId
         ? { profileId }
         : {}),
@@ -156,6 +169,13 @@ export class TasksService {
     const task = await this.getTaskOrThrow(id);
     this.assertOwnership(task, user);
 
+    if (dto.workspaceId) {
+      await this.workspaces.assertOwnedWorkspace(
+        dto.workspaceId,
+        task.profileId,
+      );
+    }
+
     const updated = await this.prisma.task.update({
       where: { id },
       data: {
@@ -164,6 +184,7 @@ export class TasksService {
         dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
         status: dto.status,
         priority: dto.priority,
+        workspaceId: dto.workspaceId,
         // Attachments are only touched when the client explicitly sends a
         // new list - omitting the field leaves existing attachments as-is;
         // sending it replaces them entirely.
@@ -243,6 +264,7 @@ export class TasksService {
         priority: task.priority,
         status: TaskStatus.PENDING,
         profileId: user.id,
+        workspaceId: task.workspaceId,
       },
       include: TASK_INCLUDE,
     });
@@ -420,6 +442,7 @@ export class TasksService {
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       profileId: task.profileId,
+      workspaceId: task.workspaceId,
       user: {
         id: task.profile.id,
         name: task.profile.name,

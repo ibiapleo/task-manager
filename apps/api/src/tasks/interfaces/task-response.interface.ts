@@ -26,6 +26,7 @@ export interface TaskResponse {
   createdAt: Date;
   updatedAt: Date;
   profileId: string;
+  workspaceId: string;
   user: TaskUserResponse;
   attachments: AttachmentResponse[];
 }

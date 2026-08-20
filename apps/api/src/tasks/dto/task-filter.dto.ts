@@ -70,6 +70,16 @@ export class TaskFilterDto {
 
   @ApiPropertyOptional({
     description:
+      "Filter by workspace id. Applied only when scope is not 'all' " +
+      '(ignored for ADMIN listing every task on the platform).',
+    example: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  })
+  @IsOptional()
+  @IsUUID()
+  workspaceId?: string;
+
+  @ApiPropertyOptional({
+    description:
       'Inclusive lower bound for dueDate (ISO date or datetime). Ignored when unscheduled=true.',
     example: '2026-07-01',
   })

@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
 import { Navbar } from '@/components/layout/navbar'
 import { useProfile } from '@/hooks/use-profile'
+import { cn } from '@/lib/utils'
 
 const PUBLIC_ROUTES = ['/login', '/register']
 
@@ -59,7 +60,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Navbar />
-      <main className="mx-auto min-h-dvh w-full max-w-6xl px-4 pt-28 pb-16 sm:px-6">
+      <main
+        className={cn(
+          'mx-auto min-h-dvh w-full px-4 pt-28 pb-16 sm:px-6',
+          pathname === '/tasks' ? 'max-w-7xl' : 'max-w-6xl',
+        )}
+      >
         {children}
       </main>
     </>

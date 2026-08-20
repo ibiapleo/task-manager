@@ -33,7 +33,7 @@ const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
   { value: 'HIGH', label: 'Alta' },
 ]
 
-const DEFAULT_VALUES: CreateTaskInput = {
+const DEFAULT_VALUES: Omit<CreateTaskInput, 'workspaceId'> = {
   title: '',
   description: '',
   dueDate: '',
@@ -45,9 +45,11 @@ const DEFAULT_VALUES: CreateTaskInput = {
 export function AddTaskDialog({
   open,
   onOpenChange,
+  workspaceId,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  workspaceId?: string
 }) {
   const { data: profile } = useProfile()
   const createTask = useCreateTask()
@@ -69,17 +71,17 @@ export function AddTaskDialog({
     formState: { errors },
   } = useForm<CreateTaskInput>({
     resolver: zodResolver(CreateTaskInputSchema),
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: { ...DEFAULT_VALUES, workspaceId: workspaceId ?? '' },
   })
 
   const attachments = watch('attachments') ?? []
 
   useEffect(() => {
     if (open) {
-      reset(DEFAULT_VALUES)
+      reset({ ...DEFAULT_VALUES, workspaceId: workspaceId ?? '' })
       resetPendingFiles()
     }
-  }, [open, reset, resetPendingFiles])
+  }, [open, reset, resetPendingFiles, workspaceId])
 
   function closeDialog() {
     resetPendingFiles()
@@ -118,11 +120,16 @@ export function AddTaskDialog({
     }
 
     try {
+      if (!workspaceId) {
+        toast.error('Selecione um espaço para criar a tarefa.')
+        return
+      }
       const payload: CreateTaskInput = {
         ...values,
         title: values.title.trim(),
         description: values.description?.trim() || undefined,
         dueDate: values.dueDate || undefined,
+        workspaceId,
         attachments: [...(values.attachments ?? []), ...uploaded],
       }
       await createTask.mutateAsync(payload)
@@ -201,7 +208,10 @@ export function AddTaskDialog({
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="task-due" className="text-sm font-medium">
-              Data limite
+              Data limite{' '}
+              <span className="font-normal text-muted-foreground">
+                (opcional)
+              </span>
             </label>
             <input
               id="task-due"
@@ -273,7 +283,9 @@ export function AddTaskDialog({
             </button>
             <button
               type="submit"
-              disabled={createTask.isPending || isUploadingAttachments}
+              disabled={
+                createTask.isPending || isUploadingAttachments || !workspaceId
+              }
               className={cn(
                 'inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition active:scale-95',
                 'hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-70 disabled:active:scale-100',

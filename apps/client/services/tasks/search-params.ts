@@ -18,6 +18,7 @@ export interface TaskSearchState {
   priority?: Priority
   q: string
   userId?: string
+  workspaceId?: string
   due: DuePreset
   sort: TaskSortField
   order: SortOrder
@@ -89,6 +90,7 @@ export function parseTaskSearchParams(
     priority: isOneOf(priorityRaw, PRIORITIES) ? priorityRaw : undefined,
     q,
     userId: parseUuid(params.get('user')),
+    workspaceId: parseUuid(params.get('workspace')),
     due: isOneOf(dueRaw, DUES) ? dueRaw : DEFAULT_TASK_SEARCH.due,
     sort: isOneOf(sortRaw, SORTS) ? sortRaw : DEFAULT_TASK_SEARCH.sort,
     order: isOneOf(orderRaw, ORDERS) ? orderRaw : DEFAULT_TASK_SEARCH.order,
@@ -106,6 +108,7 @@ export function serializeTaskSearchParams(
   if (state.priority) params.set('priority', state.priority)
   if (state.q) params.set('q', state.q)
   if (state.userId) params.set('user', state.userId)
+  if (state.workspaceId) params.set('workspace', state.workspaceId)
   if (state.due !== DEFAULT_TASK_SEARCH.due) params.set('due', state.due)
   if (state.sort !== DEFAULT_TASK_SEARCH.sort) params.set('sort', state.sort)
   if (state.order !== DEFAULT_TASK_SEARCH.order) params.set('order', state.order)
@@ -130,6 +133,9 @@ export function toTaskFilterInput(state: TaskSearchState): TaskFilterInput {
   if (state.priority) filter.priority = state.priority
   if (state.q) filter.search = state.q
   if (state.scope === 'all' && state.userId) filter.profileId = state.userId
+  if (state.scope !== 'all' && state.workspaceId) {
+    filter.workspaceId = state.workspaceId
+  }
 
   switch (state.due) {
     case 'overdue':

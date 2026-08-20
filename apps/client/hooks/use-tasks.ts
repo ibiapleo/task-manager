@@ -59,6 +59,7 @@ export function useCreateTask() {
         createdAt: now,
         updatedAt: now,
         profileId: profile?.id ?? '',
+        workspaceId: input.workspaceId,
         user: {
           id: profile?.id ?? '',
           name: profile?.name ?? null,
@@ -90,6 +91,9 @@ export function useCreateTask() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all() })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.workspaces.all(),
+      })
     },
   })
 }
@@ -146,8 +150,13 @@ export function useUpdateTask() {
         queryClient.setQueryData(key, data)
       })
     },
-    onSuccess: () => {
+    onSuccess: (_data, { patch }) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all() })
+      if (patch.workspaceId) {
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.workspaces.all(),
+        })
+      }
     },
   })
 }
@@ -229,6 +238,9 @@ export function useDuplicateTask() {
       })
 
       void queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all() })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.workspaces.all(),
+      })
     },
   })
 }
@@ -275,6 +287,9 @@ export function useDeleteTask() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all() })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.workspaces.all(),
+      })
     },
   })
 }
@@ -322,6 +337,9 @@ export function useDeleteTasks() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all() })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.workspaces.all(),
+      })
     },
   })
 }

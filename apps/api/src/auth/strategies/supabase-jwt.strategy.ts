@@ -5,6 +5,7 @@ import { Profile, Role } from '@prisma/client';
 import { passportJwtSecret } from 'jwks-rsa';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DEFAULT_WORKSPACE_NAME } from '../../workspaces/workspace.constants';
 import { SupabaseJwtPayload } from '../interfaces/supabase-jwt-payload.interface';
 
 @Injectable()
@@ -52,13 +53,22 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         return existingProfile;
       }
 
-      return tx.profile.create({
+      const profile = await tx.profile.create({
         data: {
           id: userId,
           email: payload.email ?? `${userId}@unknown.local`,
           role: Role.COMMON,
         },
       });
+
+      await tx.workspace.create({
+        data: {
+          profileId: profile.id,
+          name: DEFAULT_WORKSPACE_NAME,
+        },
+      });
+
+      return profile;
     });
   }
 }

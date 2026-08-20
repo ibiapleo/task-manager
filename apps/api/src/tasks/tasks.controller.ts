@@ -59,6 +59,7 @@ export class TasksController {
     description:
       'Creates a task owned by the authenticated user. The profile id is ' +
       'always taken from the access token, never from the request body. ' +
+      'workspaceId is required and must belong to the caller. ' +
       'Optionally accepts attachments already uploaded to Supabase Storage ' +
       '(each with a public URL and the original filename).',
   })
@@ -75,6 +76,11 @@ export class TasksController {
     status: 401,
     description: 'Missing, invalid or expired access token.',
   })
+  @ApiResponse({
+    status: 403,
+    description: 'workspaceId does not belong to the authenticated user.',
+  })
+  @ApiResponse({ status: 404, description: 'Workspace not found.' })
   create(
     @Body() createTaskDto: CreateTaskDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -88,7 +94,8 @@ export class TasksController {
     description:
       "Defaults to scope=personal (caller's tasks only). ADMIN may pass " +
       'scope=all to list every task (optionally filtered by profileId); ' +
-      'COMMON requesting scope=all gets 403. Supports filtering by ' +
+      'COMMON requesting scope=all gets 403. workspaceId filters personal ' +
+      'lists and is ignored when scope=all. Supports filtering by ' +
       'status/priority, free-text search over title/description, dueAfter/' +
       'dueBefore, unscheduled (no dueDate), sorting and pagination.',
   })
@@ -172,9 +179,10 @@ export class TasksController {
   @ApiOperation({
     summary: 'Duplicate a task',
     description:
-      'Clones title, description, priority and dueDate into a new task owned ' +
-      'by the authenticated user with status PENDING. Attachments are not copied. ' +
-      'COMMON users may only duplicate tasks they own; ADMIN may duplicate any task.',
+      'Clones title, description, priority, dueDate and workspaceId into a ' +
+      'new task owned by the authenticated user with status PENDING. ' +
+      'Attachments are not copied. COMMON users may only duplicate tasks ' +
+      'they own; ADMIN may duplicate any task.',
   })
   @ApiResponse({
     status: 201,
@@ -204,8 +212,9 @@ export class TasksController {
     description:
       'Applies the same status, priority and/or dueDate patch to up to 100 ' +
       'tasks. At least one of status, priority, or dueDate must be provided. ' +
-      'COMMON users may only update tasks they own; ADMIN may update any of ' +
-      'the given tasks. Fails entirely if any id is missing or forbidden.',
+      'Does not move tasks between workspaces. COMMON users may only update ' +
+      'tasks they own; ADMIN may update any of the given tasks. Fails ' +
+      'entirely if any id is missing or forbidden.',
   })
   @ApiResponse({
     status: 200,
@@ -248,9 +257,10 @@ export class TasksController {
     summary: 'Update a task',
     description:
       'Partial update. COMMON users may only update tasks they own; ADMIN ' +
-      'can update any task. Sending "attachments" replaces the existing set ' +
-      'entirely. Omitting dueDate or sending a non-truthy value does not ' +
-      'clear an existing due date to null.',
+      'can update any task. Sending workspaceId moves the task to another ' +
+      'workspace of the task owner. Sending "attachments" replaces the ' +
+      'existing set entirely. Omitting dueDate or sending a non-truthy ' +
+      'value does not clear an existing due date to null.',
   })
   @ApiResponse({
     status: 200,
