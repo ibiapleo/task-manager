@@ -4,3 +4,4 @@ export * from './password-policy';
 export * from './preferences';
 export * from './profile';
 export * from './task';
+export * from './workspace';

@@ -33,6 +33,7 @@ export const TaskResponseSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   profileId: z.string().uuid(),
+  workspaceId: z.string().uuid(),
   user: TaskUserResponseSchema,
   attachments: z.array(AttachmentResponseSchema),
 });
@@ -45,12 +46,19 @@ export const TaskStatusSummarySchema = z.object({
 });
 export type TaskStatusSummary = z.infer<typeof TaskStatusSummarySchema>;
 
+const optionalDueDateSchema = z.preprocess(
+  (value) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  z.string().min(1).optional(),
+);
+
 export const CreateTaskInputSchema = z.object({
   title: z.string().trim().min(1).max(120),
   description: z.string().max(2000).optional(),
-  dueDate: z.string().min(1).optional(),
+  dueDate: optionalDueDateSchema,
   status: TaskStatusSchema.optional(),
   priority: PrioritySchema.optional(),
+  workspaceId: z.string().uuid(),
   attachments: z.array(AttachmentInputSchema).max(20).optional(),
 });
 export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;
@@ -111,6 +119,7 @@ export const TaskFilterInputSchema = z.object({
   priority: PrioritySchema.optional(),
   search: z.string().max(120).optional(),
   profileId: z.string().uuid().optional(),
+  workspaceId: z.string().uuid().optional(),
   dueAfter: z.string().min(1).optional(),
   dueBefore: z.string().min(1).optional(),
   unscheduled: z.boolean().optional(),
