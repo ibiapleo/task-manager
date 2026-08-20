@@ -70,6 +70,9 @@ export class TaskResponseDto {
   @ApiProperty({ example: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' })
   profileId: string;
 
+  @ApiProperty({ example: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' })
+  workspaceId: string;
+
   @ApiProperty({ type: TaskUserResponseDto })
   user: TaskUserResponseDto;
 

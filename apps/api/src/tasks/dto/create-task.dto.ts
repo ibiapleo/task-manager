@@ -10,6 +10,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  IsUUID,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -84,6 +85,14 @@ export class CreateTaskDto {
   @IsOptional()
   @IsEnum(Priority)
   priority?: Priority;
+
+  @ApiProperty({
+    description:
+      'Workspace that will own this task. Must belong to the authenticated user.',
+    example: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  })
+  @IsUUID()
+  workspaceId: string;
 
   @ApiPropertyOptional({
     description:
