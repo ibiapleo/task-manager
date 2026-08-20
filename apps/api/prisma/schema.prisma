@@ -39,9 +39,26 @@ model Profile {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  tasks Task[]
+  tasks      Task[]
+  workspaces Workspace[]
 
   @@map("profiles")
+}
+
+model Workspace {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  profileId String  @map("profile_id") @db.Uuid
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@unique([profileId, name])
+  @@index([profileId])
+  @@map("workspaces")
 }
 
 model Task {
@@ -57,9 +74,13 @@ model Task {
   profileId String  @map("profile_id") @db.Uuid
   profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
+  workspaceId String    @map("workspace_id") @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
   attachments Attachment[]
 
   @@index([profileId])
+  @@index([workspaceId])
   @@index([status])
   @@index([priority])
   @@map("tasks")
