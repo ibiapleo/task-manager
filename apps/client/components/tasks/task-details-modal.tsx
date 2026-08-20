@@ -16,6 +16,7 @@ import { useDuplicateTask, useUpdateTask } from '@/hooks/use-tasks'
 import { useProfile } from '@/hooks/use-profile'
 import { usePendingAttachments } from '@/hooks/use-pending-attachments'
 import { useFormattedDate } from '@/hooks/use-formatted-date'
+import { useWorkspaces } from '@/hooks/use-workspaces'
 import { GlassCard } from '@/components/ui/glass'
 import { IconTooltip } from '@/components/ui/icon-tooltip'
 import { PillSelect } from '@/components/ui/pill-select'
@@ -50,6 +51,7 @@ function toFormValues(task: TaskResponse): UpdateTaskInput {
     dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '',
     status: task.status,
     priority: task.priority,
+    workspaceId: task.workspaceId,
     attachments: task.attachments.map((a) => ({
       url: a.url,
       originalName: a.originalName,
@@ -69,6 +71,7 @@ export function TaskDetailsModal({
   onDuplicate?: () => void | Promise<void>
 }) {
   const { data: profile } = useProfile()
+  const { data: workspaces = [] } = useWorkspaces()
   const updateTask = useUpdateTask()
   const duplicateTask = useDuplicateTask()
   const [isDuplicating, setIsDuplicating] = useState(false)
@@ -127,6 +130,13 @@ export function TaskDetailsModal({
 
   const activeTask = task
   const busy = updateTask.isPending || isUploadingAttachments || isDuplicating
+  const workspaceOptions = workspaces.map((workspace) => ({
+    value: workspace.id,
+    label: workspace.name,
+  }))
+  const canMoveWorkspace = workspaces.some(
+    (workspace) => workspace.id === activeTask.workspaceId,
+  )
 
   async function handleDuplicate() {
     if (busy) return
@@ -177,6 +187,7 @@ export function TaskDetailsModal({
         description: values.description?.trim() || undefined,
         dueDate: values.dueDate || undefined,
         attachments: [...(values.attachments ?? []), ...uploaded],
+        workspaceId: canMoveWorkspace ? values.workspaceId : undefined,
       }
       await updateTask.mutateAsync({ id: activeTask.id, patch: payload })
       toast.success('Tarefa atualizada.')
@@ -287,7 +298,24 @@ export function TaskDetailsModal({
             )}
           </section>
 
-          <section className="grid gap-4 sm:grid-cols-3">
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {canMoveWorkspace && workspaceOptions.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-medium">Espaço</span>
+                <Controller
+                  control={control}
+                  name="workspaceId"
+                  render={({ field }) => (
+                    <PillSelect<string>
+                      label="Espaço"
+                      value={field.value ?? activeTask.workspaceId}
+                      options={workspaceOptions}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium">Status</span>
               <Controller

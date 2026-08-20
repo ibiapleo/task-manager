@@ -1,4 +1,7 @@
-import type { TaskFilterInput, UserFilterInput } from '@task-manager/shared-types'
+import type {
+  TaskFilterInput,
+  UserFilterInput,
+} from '@task-manager/shared-types'
 
 /**
  * Centralized queryKey factory. Every hook that reads or invalidates cache
@@ -12,12 +15,18 @@ export const queryKeys = {
   },
   tasks: {
     all: () => ['tasks'] as const,
-    list: (filters: TaskFilterInput = {}) => ['tasks', 'list', filters] as const,
+    list: (filters: TaskFilterInput = {}) =>
+      ['tasks', 'list', filters] as const,
     detail: (id: string) => ['tasks', 'detail', id] as const,
     summary: () => ['tasks', 'summary'] as const,
   },
+  workspaces: {
+    all: () => ['workspaces'] as const,
+    list: () => ['workspaces', 'list'] as const,
+  },
   users: {
     all: () => ['users'] as const,
-    list: (filters: UserFilterInput = {}) => ['users', 'list', filters] as const,
+    list: (filters: UserFilterInput = {}) =>
+      ['users', 'list', filters] as const,
   },
 }

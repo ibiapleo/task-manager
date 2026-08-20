@@ -7,8 +7,10 @@ import { AddTaskDialog } from '@/components/tasks/add-task-dialog'
 import { TaskFilters } from '@/components/tasks/task-filters'
 import { TaskSortBar } from '@/components/tasks/task-sort-bar'
 import { TasksBoard } from '@/components/tasks/tasks-board'
+import { WorkspaceRailSheet } from '@/components/workspaces/workspace-rail-sheet'
 import { usePermissions } from '@/hooks/use-permissions'
 import { useProfile } from '@/hooks/use-profile'
+import { useWorkspaces } from '@/hooks/use-workspaces'
 import {
   DEFAULT_TASK_SEARCH,
   parseTaskSearchParams,
@@ -22,6 +24,8 @@ import { cn } from '@/lib/utils'
 function TasksPageContent() {
   const { data: profile } = useProfile()
   const { isAdmin } = usePermissions()
+  const workspacesQuery = useWorkspaces()
+  const workspaces = workspacesQuery.data ?? []
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -91,8 +95,40 @@ function TasksPageContent() {
     })
   }, [replaceState, state])
 
-  const filters = useMemo(() => toTaskFilterInput(state), [state])
+  const showRail = state.scope !== 'all'
+  const activeWorkspaceId = showRail
+    ? (state.workspaceId ?? workspaces[0]?.id)
+    : undefined
+
+  useEffect(() => {
+    if (!showRail) return
+    if (!workspacesQuery.isSuccess) return
+    if (workspaces.length === 0) return
+    const isValid = workspaces.some(
+      (workspace) => workspace.id === state.workspaceId,
+    )
+    const defaultWorkspace = workspaces[0]
+    if (!defaultWorkspace) return
+    if (!state.workspaceId || !isValid) {
+      replaceState({ ...state, workspaceId: defaultWorkspace.id })
+    }
+  }, [
+    replaceState,
+    showRail,
+    state,
+    workspaces,
+    workspacesQuery.isSuccess,
+  ])
+
+  const filters = useMemo(() => {
+    return toTaskFilterInput({
+      ...state,
+      workspaceId: showRail ? activeWorkspaceId : undefined,
+    })
+  }, [state, showRail, activeWorkspaceId])
   const firstName = profile?.name?.split(' ')[0] ?? profile?.email?.split('@')[0]
+  const boardReady = state.scope === 'all' || Boolean(activeWorkspaceId)
+  const createWorkspaceId = activeWorkspaceId ?? workspaces[0]?.id
 
   const handlePageChange = useCallback(
     (page: number) => {
@@ -100,6 +136,25 @@ function TasksPageContent() {
     },
     [patchState],
   )
+
+  const handleSelectWorkspace = useCallback(
+    (workspaceId: string) => {
+      if (workspaceId === state.workspaceId) return
+      patchState({ workspaceId })
+    },
+    [patchState, state.workspaceId],
+  )
+
+  const railProps = {
+    workspaces,
+    activeWorkspaceId,
+    onSelect: handleSelectWorkspace,
+    isLoading: workspacesQuery.isPending,
+    isError: workspacesQuery.isError,
+    onRetry: () => {
+      void workspacesQuery.refetch()
+    },
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -153,6 +208,8 @@ function TasksPageContent() {
         </div>
       )}
 
+      {showRail && <WorkspaceRailSheet {...railProps} />}
+
       <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
         <div
           role="tablist"
@@ -193,10 +250,11 @@ function TasksPageContent() {
 
         <button
           type="button"
+          disabled={!createWorkspaceId}
           onClick={() => setAdding(true)}
           className={cn(
             'inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition active:scale-95',
-            'hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+            'hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-70 disabled:active:scale-100',
           )}
         >
           <Plus className="size-4" />
@@ -219,14 +277,26 @@ function TasksPageContent() {
         </div>
       </div>
 
-      <TasksBoard
-        viewMode={state.view}
-        scope={state.scope}
-        filters={filters}
-        onPageChange={handlePageChange}
-      />
+      {boardReady ? (
+        <TasksBoard
+          viewMode={state.view}
+          scope={state.scope}
+          filters={filters}
+          onPageChange={handlePageChange}
+        />
+      ) : (
+        <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+          {workspacesQuery.isError
+            ? 'Não foi possível carregar seus espaços.'
+            : 'Carregando espaços...'}
+        </div>
+      )}
 
-      <AddTaskDialog open={adding} onOpenChange={setAdding} />
+      <AddTaskDialog
+        open={adding}
+        onOpenChange={setAdding}
+        workspaceId={createWorkspaceId}
+      />
     </div>
   )
 }
